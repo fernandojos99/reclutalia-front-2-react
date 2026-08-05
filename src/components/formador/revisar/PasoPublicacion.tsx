@@ -5,15 +5,32 @@
  * (publicar, o aplicar/descartar lo que propuso el dictado por voz).
  */
 import type { ReactNode } from "react";
-import { MapPin, Clock, Compass, ListChecks, Ban, Target, ShieldCheck } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, ShieldCheck } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Desplegable } from "../../common/Desplegable";
 import { Chip } from "../../common/Chip";
 import { PerfilResumen } from "./PerfilResumen";
-import { mrfn, bonos, herramientas, sueldoMensual, BENEFICIOS, PRESTACIONES } from "../../../constants/paqueteVacante";
+import { bonos, herramientas, sueldoMensual, BENEFICIOS, PRESTACIONES } from "../../../constants/paqueteVacante";
 import { money } from "../../../utils/format";
 import type { Requisito } from "../../../types/models/domain";
+
+/**
+ * Encabezados en negrita del markdown de `descripcion` que sí se muestran. El resto
+ * ("Perfil ideal del candidato", "Oferta de valor", el cierre) lo repiten más abajo los
+ * bloques Requisitos y Lo que ofrecemos, así que se recortan aquí.
+ */
+const SECCIONES_DESC = ["Objetivo del puesto", "Funciones principales"];
+
+/** Corta la descripción en el primer encabezado `**…**` que no esté en la lista permitida. */
+function recortarDescripcion(md: string): string {
+  const lineas = md.split("\n");
+  const corte = lineas.findIndex((l) => {
+    const m = l.trim().match(/^\*\*(.+?)\*\*$/);
+    return m ? !SECCIONES_DESC.includes(m[1].trim()) : false;
+  });
+  // Sin encabezados reconocibles (descripción con otra estructura): se respeta íntegra.
+  return corte === -1 ? md : lineas.slice(0, corte).join("\n").trimEnd();
+}
 
 interface Props {
   req: Requisito;
@@ -23,8 +40,17 @@ interface Props {
 }
 
 export function PasoPublicacion({ req, destacados, acciones }: Props) {
-  const m = mrfn(req);
-  const lista = (xs: string[]) => xs.join(" · ");
+  /** Un grupo de "Lo que ofrecemos": subtítulo + puntos con palomita. */
+  const grupo = (titulo: string, items: string[]) => (
+    <div className="ofrece-grupo">
+      <div className="ofrece-sub">{titulo}</div>
+      <ul className="ofrece-lista">
+        {items.map((x) => (
+          <li key={x}><CheckCircle2 size={14} />{x}</li>
+        ))}
+      </ul>
+    </div>
+  );
 
   return (
     <div>
@@ -46,31 +72,20 @@ export function PasoPublicacion({ req, destacados, acciones }: Props) {
       {req.descripcion && (
         <>
           <div className="rev-titulin">Descripción</div>
-          <div className="desc-md"><ReactMarkdown remarkPlugins={[remarkGfm]}>{req.descripcion}</ReactMarkdown></div>
+          <div className="desc-md">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{recortarDescripcion(req.descripcion)}</ReactMarkdown>
+          </div>
         </>
       )}
 
-      <div className="rev-titulin">Mandato, responsabilidades y funciones</div>
-      <Desplegable titulo="Mandato" icono={Compass} detalle={<p>{m.mandato}</p>} />
-      <Desplegable titulo="Responsabilidades" icono={Target}
-        detalle={<ul>{m.responsabilidades.map((x) => <li key={x}>{x}</li>)}</ul>} />
-      <Desplegable titulo="Funciones" icono={ListChecks}
-        detalle={<ul>{m.funciones.map((x) => <li key={x}>{x}</li>)}</ul>} />
-      <Desplegable titulo="No funciones" icono={Ban}
-        detalle={<ul>{m.noFunciones.map((x) => <li key={x}>{x}</li>)}</ul>} />
-
-      <div className="rev-titulin">Perfil del candidato</div>
+      <div className="rev-titulin">Requisitos</div>
       <PerfilResumen req={req} destacados={destacados} />
 
       <div className="rev-titulin">Lo que ofrecemos</div>
-      <Desplegable titulo="Compensaciones y bonos" extra={`${bonos(req).length} conceptos`}
-        detalle={<p>{lista(bonos(req).map((b) => b.titulo))}</p>} />
-      <Desplegable titulo="Prestaciones" extra={`${PRESTACIONES.length} conceptos`}
-        detalle={<p>{lista(PRESTACIONES.map((p) => p.titulo))}</p>} />
-      <Desplegable titulo="Beneficios" extra={`${BENEFICIOS.length} conceptos`}
-        detalle={<p>{lista(BENEFICIOS.map((b) => b.titulo))}</p>} />
-      <Desplegable titulo="Herramientas de trabajo" extra={`${herramientas(req).length} conceptos`}
-        detalle={<p>{lista(herramientas(req).map((h) => h.titulo))}</p>} />
+      {grupo("Compensaciones y bonos", bonos(req).map((b) => b.titulo))}
+      {grupo("Prestaciones", PRESTACIONES.map((p) => p.titulo))}
+      {grupo("Beneficios", BENEFICIOS.map((b) => b.titulo))}
+      {grupo("Herramientas de trabajo", herramientas(req).map((h) => h.titulo))}
 
       <div className="paso-acciones">{acciones}</div>
     </div>

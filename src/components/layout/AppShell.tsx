@@ -11,6 +11,7 @@ import { Topbar } from "./Topbar";
 import { BotSoporte } from "./BotSoporte";
 import { PerfilEditor } from "../candidato/PerfilEditor";
 import { useDemo } from "../../contexts/DemoContext";
+import { BotProvider } from "../../contexts/BotContext";
 import { useData } from "../../store/DataProvider";
 import { buildThemeCss } from "../../styles/themes";
 
@@ -105,6 +106,7 @@ export function AppShell() {
         : { nombre: ADMIN.nombre, subtitulo: ADMIN.puesto, foto: null };
 
   return (
+    <BotProvider>
     <div className={"rk" + (sideCollapsed ? " side-collapsed" : "") + (enChat ? " en-chat" : "")} data-theme={tema}>
       <style>{THEME_CSS}</style>
       <Sidebar formadores={formadores} candidatos={candidatos} noLeidas={noLeidas}
@@ -133,5 +135,6 @@ export function AppShell() {
         </div>
       )}
     </div>
+    </BotProvider>
   );
 }

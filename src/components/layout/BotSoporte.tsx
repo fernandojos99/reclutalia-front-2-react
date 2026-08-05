@@ -12,6 +12,7 @@ import { Bot, X, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useDemo } from "../../contexts/DemoContext";
+import { useBot } from "../../contexts/BotContext";
 import { getSessionId } from "../../services/agenteService";
 import { AgentChat, type Mensaje } from "../agente/AgentChat";
 import asistente from "../../assets/asistente.png";
@@ -31,7 +32,8 @@ const MIN_W = 300, MIN_H = 340;
 
 export function BotSoporte() {
   const { rol, formadorId, candId } = useDemo();
-  const [open, setOpen] = useState(false);
+  // La apertura vive en BotContext: otros componentes (el botón de chat del asistente) la abren.
+  const { abierto: open, alternar } = useBot();
   const [modo, setModo] = useState<Modo>("faq");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [botSession] = useState(getSessionId);
@@ -138,7 +140,7 @@ export function BotSoporte() {
           </div>
         </div>
       )}
-      <button className="botfab" onClick={() => setOpen((o) => !o)} title="Bot interactivo de apoyo y soporte">
+      <button className="botfab" onClick={alternar} title="Bot interactivo de apoyo y soporte">
         {open ? <X size={22} /> : <img src={asistente} alt="Asistente" className="botfab-img" />}
       </button>
     </>

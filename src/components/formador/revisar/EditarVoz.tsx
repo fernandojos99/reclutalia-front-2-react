@@ -27,14 +27,19 @@ interface Props {
   /** Devuelve el requisito ya fusionado y los nombres de campo que cambiaron. */
   onAplicar: (r: Requisito, campos: string[]) => void;
   onCancelar: () => void;
+  /** Avisa en qué pantalla va el dictado: el asistente oculta "Continuar a publicación" hasta la 7. */
+  onPaso?: (p: 5 | 6 | 7) => void;
 }
 
-export function EditarVoz({ req, onAplicar, onCancelar }: Props) {
+export function EditarVoz({ req, onAplicar, onCancelar, onPaso }: Props) {
   const [paso, setPaso] = useState<5 | 6 | 7>(5);
   const [grabando, setGrabando] = useState(false);
   const [texto, setTexto] = useState("");
   const [propuesta, setPropuesta] = useState<Partial<Requisito> | null>(null);
   const [msg, setMsg] = useState(0);
+
+  // El asistente necesita saber en qué pantalla vamos para decidir si ya puede ofrecer publicar.
+  useEffect(() => { onPaso?.(paso); }, [paso, onPaso]);
 
   // Grabación simulada: 2.5 s de animación y luego el transcript enlatado.
   useEffect(() => {
@@ -60,7 +65,7 @@ export function EditarVoz({ req, onAplicar, onCancelar }: Props) {
   // ── Pantalla 5 ──
   if (paso === 5) {
     return (
-      <div className="card">
+      <div>
         <h3 style={{ fontSize: 16, marginBottom: 4 }}>Cuéntanos qué estás buscando</h3>
         <p className="help" style={{ marginTop: 0 }}>
           Describe con tus palabras el perfil de esta vacante: experiencia, habilidades, turno, ubicación y sueldo.
@@ -106,7 +111,7 @@ export function EditarVoz({ req, onAplicar, onCancelar }: Props) {
   // ── Pantalla 6 ──
   if (paso === 6) {
     return (
-      <div className="card">
+      <div>
         <div className="proc-wrap">
           <Loader2 size={46} className="ai-spin" />
           <h3 style={{ fontSize: 16, color: "var(--ai)" }}>Generando vista previa de tu publicación</h3>

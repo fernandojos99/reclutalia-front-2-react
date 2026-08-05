@@ -1,7 +1,11 @@
-/** Inicio del formador (port fiel de `FormadorHome`): stats + vacantes con timeline de fases. */
+/**
+ * Inicio del formador: stats + una sola vista a la vez, alternada con el botón de la cabecera.
+ * Arranca en "Plantilla de tu equipo" (lo que se consulta a diario) y el avance de las vacantes
+ * queda detrás del toggle "Progreso".
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Clock, CheckCircle2, ChevronRight } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, ChevronRight, ListChecks, Users } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
@@ -16,6 +20,7 @@ export function MisVacantesPage() {
   const { vacantes, loading } = useData();
   const navigate = useNavigate();
   const [soloCompletadas, setSoloCompletadas] = useState(false);
+  const [vista, setVista] = useState<"plantilla" | "progreso">("plantilla");
 
   if (loading) return <p>Cargando…</p>;
 
@@ -27,6 +32,15 @@ export function MisVacantesPage() {
   );
   const listadas = mias.filter((v) => !soloCompletadas || v.estado === "cerrada");
 
+  const enPlantilla = vista === "plantilla";
+  const titulo = enPlantilla
+    ? "Plantilla de tu equipo"
+    : soloCompletadas ? "Histórico de vacantes completadas" : "Tus vacantes y su avance en el proceso";
+
+  // El histórico de completadas filtra la LISTA de vacantes: si se pide desde la plantilla,
+  // hay que saltar a la vista de progreso o el clic no tendría ningún efecto visible.
+  const verCompletadas = () => { setSoloCompletadas((s) => !s); setVista("progreso"); };
+
   return (
     <div>
       <div className="grid3" style={{ marginBottom: 18 }}>
@@ -34,7 +48,7 @@ export function MisVacantesPage() {
         <div className="stat"><b>{activos}</b><span>Candidatos en proceso</span></div>
         <div
           className={"stat" + (soloCompletadas ? " stat-on" : "")}
-          onClick={completadas ? () => setSoloCompletadas((s) => !s) : undefined}
+          onClick={completadas ? verCompletadas : undefined}
           style={{ cursor: completadas ? "pointer" : "default" }}
           title={completadas ? "Ver histórico de vacantes completadas" : undefined}
         >
@@ -43,42 +57,53 @@ export function MisVacantesPage() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 12px", flexWrap: "wrap" }}>
-        <h3 style={{ fontSize: 15 }}>{soloCompletadas ? "Histórico de vacantes completadas" : "Tus vacantes y su avance en el proceso"}</h3>
-        {soloCompletadas && <button className="btn ghost sm" onClick={() => setSoloCompletadas(false)}>Ver todas</button>}
+        <h3 style={{ fontSize: 15 }}>{titulo}</h3>
+        {enPlantilla && <span className="help" style={{ margin: 0 }}>Toca una posición para revisarla y publicarla.</span>}
+        {!enPlantilla && soloCompletadas && <button className="btn ghost sm" onClick={() => setSoloCompletadas(false)}>Ver todas</button>}
+        <button
+          className="btn ghost sm"
+          style={{ marginLeft: "auto" }}
+          onClick={() => setVista((v) => (v === "plantilla" ? "progreso" : "plantilla"))}
+          title={enPlantilla ? "Ver el avance de tus vacantes" : "Ver la plantilla de tu equipo"}
+        >
+          {enPlantilla ? <><ListChecks size={13} /> Progreso</> : <><Users size={13} /> Plantilla</>}
+        </button>
       </div>
 
-      {listadas.map((v) => {
-        const enProceso = Object.keys(v.pipeline).length;
-        return (
-          <div className={"card" + (v.estado === "cerrada" ? " ok" : "")} key={v.id} style={{ marginBottom: 14, cursor: "pointer" }}
-            onClick={() => navigate(`/formador/vacante/${v.id}`)}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <b style={{ fontSize: 15 }}>{v.req.titulo}</b><Chip>{v.id}</Chip>
-              {v.estado === "asignada" && <Chip tone="gold" icon={AlertCircle}>Requiere tu revisión</Chip>}
-              {v.estado === "cambios" && <Chip icon={Clock}>Esperando al admin</Chip>}
-              {v.estado === "abierta" && (candidatoElegido(v) ? <Chip tone="ok" icon={CheckCircle2}>Candidato elegido</Chip> : <Chip tone="ok">Búsqueda activa</Chip>)}
-              {v.estado === "cerrada" && <Chip tone="ok" icon={CheckCircle2}>Cubierta</Chip>}
-              <span style={{ marginLeft: "auto" }} className="help">{enProceso ? enProceso + " candidato(s) en proceso" : ""}</span>
-              <Chip icon={Clock}>{diasActivaLabel(v)}</Chip>
-              <ChevronRight size={16} color="var(--gray)" />
-            </div>
-            <div style={{ marginTop: 14 }}><FasesBar v={v} timeline /></div>
-          </div>
-        );
-      })}
-      {!listadas.length && (
-        <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
-          {soloCompletadas ? "Aún no tienes vacantes completadas." : "El administrador aún no te asigna vacantes."}
-        </div>
-      )}
-
-      {mias.length > 0 && (
-        <>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "26px 0 12px", flexWrap: "wrap" }}>
-            <h3 style={{ fontSize: 15 }}>Plantilla de tu equipo</h3>
-            <span className="help" style={{ margin: 0 }}>Toca una posición para revisarla y publicarla.</span>
-          </div>
+      {enPlantilla ? (
+        mias.length ? (
           <PlantillaCards vacantes={mias} />
+        ) : (
+          <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
+            El administrador aún no te asigna vacantes.
+          </div>
+        )
+      ) : (
+        <>
+          {listadas.map((v) => {
+            const enProceso = Object.keys(v.pipeline).length;
+            return (
+              <div className={"card" + (v.estado === "cerrada" ? " ok" : "")} key={v.id} style={{ marginBottom: 14, cursor: "pointer" }}
+                onClick={() => navigate(`/formador/vacante/${v.id}`)}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <b style={{ fontSize: 15 }}>{v.req.titulo}</b><Chip>{v.id}</Chip>
+                  {v.estado === "asignada" && <Chip tone="gold" icon={AlertCircle}>Requiere tu revisión</Chip>}
+                  {v.estado === "cambios" && <Chip icon={Clock}>Esperando al admin</Chip>}
+                  {v.estado === "abierta" && (candidatoElegido(v) ? <Chip tone="ok" icon={CheckCircle2}>Candidato elegido</Chip> : <Chip tone="ok">Búsqueda activa</Chip>)}
+                  {v.estado === "cerrada" && <Chip tone="ok" icon={CheckCircle2}>Cubierta</Chip>}
+                  <span style={{ marginLeft: "auto" }} className="help">{enProceso ? enProceso + " candidato(s) en proceso" : ""}</span>
+                  <Chip icon={Clock}>{diasActivaLabel(v)}</Chip>
+                  <ChevronRight size={16} color="var(--gray)" />
+                </div>
+                <div style={{ marginTop: 14 }}><FasesBar v={v} timeline /></div>
+              </div>
+            );
+          })}
+          {!listadas.length && (
+            <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
+              {soloCompletadas ? "Aún no tienes vacantes completadas." : "El administrador aún no te asigna vacantes."}
+            </div>
+          )}
         </>
       )}
     </div>
