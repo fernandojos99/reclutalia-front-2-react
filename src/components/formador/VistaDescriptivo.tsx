@@ -14,6 +14,7 @@ import { CambiosResumen } from "../common/CambiosResumen";
 import { TagPicker } from "../ui/uploads";
 import { money } from "../../utils/format";
 import { PROFESIONES, TURNOS, ESPECIALIDADES, HARD_SKILLS, SOFT_SKILLS, TIPOS_VACANTE } from "../../constants/catalogos";
+import { PERFIL_POR_AREA, PERFIL_AREA_DEFAULT } from "../../utils/perfilIA";
 import type { Requisito, Vacante } from "../../types/models/domain";
 
 interface Props {
@@ -26,22 +27,16 @@ interface Props {
 /** Campos editables de la sección 2. */
 type PerfilDraft = Pick<Requisito, "educacion" | "areasConocimiento" | "espRequeridas" | "hardSkills" | "softSkills" | "ubicacionTrabajo" | "turno" | "anosExp">;
 
-/** Sugerencia determinista de perfil por área (simula a la IA; sin azar). */
+/** Sugerencia determinista de perfil por área (simula a la IA; sin azar). El mapa vive en `utils/perfilIA`. */
 function sugerirPerfil(v: Vacante): PerfilDraft {
-  const MAPA: Record<string, Partial<PerfilDraft>> = {
-    "Atención a Clientes": { areasConocimiento: ["Administración de Empresas", "Comunicación"], espRequeridas: ["Servicio al Cliente"], hardSkills: ["CRM", "Excel avanzado", "Zendesk"], softSkills: ["Empatía", "Comunicación efectiva", "Tolerancia a la presión"] },
-    "Tecnología": { areasConocimiento: ["Ingeniería de Software", "Sistemas Computacionales"], espRequeridas: ["Desarrollo Frontend", "UX/UI"], hardSkills: ["React", "Node.js", "Figma"], softSkills: ["Trabajo en equipo", "Atención al detalle", "Proactividad"] },
-    "Ventas": { areasConocimiento: ["Mercadotecnia", "Ventas"], espRequeridas: ["Ventas B2C", "CRM y Fidelización"], hardSkills: ["CRM", "Negociación comercial", "Prospección en frío"], softSkills: ["Comunicación efectiva", "Orientación a resultados", "Empatía"] },
-    "Datos y Analítica": { areasConocimiento: ["Actuaría", "Sistemas Computacionales"], espRequeridas: ["Ciencia de Datos", "Business Intelligence"], hardSkills: ["Python", "SQL", "Power BI"], softSkills: ["Pensamiento analítico", "Atención al detalle"] },
-  };
-  const base = MAPA[v.req.area] ?? { areasConocimiento: ["Administración de Empresas"], espRequeridas: v.req.espRequeridas, hardSkills: ["Excel avanzado"], softSkills: ["Comunicación efectiva", "Trabajo en equipo"] };
+  const base = PERFIL_POR_AREA[v.req.area] ?? { ...PERFIL_AREA_DEFAULT, espRequeridas: v.req.espRequeridas };
   return {
     educacion: "Licenciatura", ubicacionTrabajo: v.req.ubicacionTrabajo,
     turno: TURNOS[v.id.charCodeAt(v.id.length - 1) % TURNOS.length],
     anosExp: Math.max(1, v.req.anosExp),
-    areasConocimiento: (base.areasConocimiento ?? []).slice(0, 3),
-    espRequeridas: (base.espRequeridas ?? []).slice(0, 5),
-    hardSkills: base.hardSkills ?? [], softSkills: base.softSkills ?? [],
+    areasConocimiento: base.areasConocimiento.slice(0, 3),
+    espRequeridas: base.espRequeridas.slice(0, 5),
+    hardSkills: base.hardSkills, softSkills: base.softSkills,
   };
 }
 

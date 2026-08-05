@@ -20,6 +20,7 @@ const THEME_CSS = buildThemeCss();
 function tituloPorRuta(pathname: string): string {
   if (pathname.endsWith("/chat")) return "Asistente IA";
   if (pathname.includes("/notificaciones")) return "Centro de notificaciones";
+  if (pathname.endsWith("/revisar")) return "Revisar vacante";
   if (pathname.startsWith("/formador/vacante")) return "Detalle de vacante";
   if (pathname.startsWith("/formador")) return "Mis vacantes";
   if (pathname === "/admin/nueva") return "Nueva vacante";

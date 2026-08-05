@@ -3,7 +3,7 @@
  * Usa useData() (db + actions) en lugar de `db`/`run(ACT...)`, y react-router para la navegación.
  */
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import {
   MapPin, Clock, ShieldCheck, CheckCircle2, Sparkles, Filter, Users, Plus,
   Archive, ArchiveRestore, Heart, FolderPlus, Share2, User, Download, Send, Star, Video,
@@ -48,6 +48,7 @@ const FILTRO_VACIO: FiltroVals = { skills: [], expMin: 0, edu: "", tipo: "ambos"
 
 export function VacanteDetailPage() {
   const { vacId = "" } = useParams();
+  const [searchParams] = useSearchParams(); // `?tab=1` permite enlazar directo al Marketplace
   const { vacantes, candidatos, formadores, actions } = useData();
   const { toast } = useDemo();
   const v = vacantes.find((x) => x.id === vacId);
@@ -71,7 +72,8 @@ export function VacanteDetailPage() {
   const [firma, setFirma] = useState("");
 
   if (!v) return <p>Cargando vacante…</p>;
-  const tabActual = tab ?? tabInicial(v);
+  const tabQuery = Number(searchParams.get("tab"));
+  const tabActual = tab ?? (Number.isInteger(tabQuery) && searchParams.has("tab") ? tabQuery : tabInicial(v));
   const setTabActual = (i: number) => setTab(i);
 
   const cand = (cid: number | string): Candidato | undefined => candidatos.find((c) => c.id === Number(cid));
@@ -310,6 +312,17 @@ export function VacanteDetailPage() {
               {poolArch.map((x) => poolCard(x, true))}
             </div>
           )}
+        </div>
+      )}
+
+      {tabActual === 1 && !abierta && (
+        <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--gray)" }}>
+          <Users size={26} style={{ marginBottom: 8 }} />
+          <p>Todavía no publicas esta vacante, así que su Marketplace de talento aún no existe.</p>
+          <p className="help">Revisa el perfil, la compensación, los beneficios y las herramientas para publicarla.</p>
+          <Link className="btn gold sm" to={`/formador/vacante/${v.id}/revisar`} style={{ marginTop: 14 }}>
+            Revisar y publicar la vacante
+          </Link>
         </div>
       )}
 

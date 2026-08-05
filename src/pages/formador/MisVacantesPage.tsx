@@ -6,6 +6,7 @@ import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
 import { FasesBar } from "../../components/common/FasesBar";
+import { PlantillaCards } from "../../components/formador/PlantillaCards";
 import { candidatoElegido } from "../../utils/fases";
 import { diasActivaLabel } from "../../utils/format";
 import { PIPE_IDX } from "../../constants/catalogos";
@@ -69,6 +70,16 @@ export function MisVacantesPage() {
         <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
           {soloCompletadas ? "Aún no tienes vacantes completadas." : "El administrador aún no te asigna vacantes."}
         </div>
+      )}
+
+      {mias.length > 0 && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "26px 0 12px", flexWrap: "wrap" }}>
+            <h3 style={{ fontSize: 15 }}>Plantilla de tu equipo</h3>
+            <span className="help" style={{ margin: 0 }}>Toca una posición para revisarla y publicarla.</span>
+          </div>
+          <PlantillaCards vacantes={mias} />
+        </>
       )}
     </div>
   );
