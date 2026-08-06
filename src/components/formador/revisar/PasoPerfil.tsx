@@ -7,7 +7,7 @@
  * recorta `skillsSugeridas()` a lo que va acorde al puesto (simulación determinista de la IA).
  */
 import { useState } from "react";
-import { Compass, ListChecks, Ban, Target, User, Edit3, Mic, Sparkles, X } from "lucide-react";
+import { Compass, ListChecks, Ban, Target, User, Edit3, Sparkles, X } from "lucide-react";
 import { Desplegable } from "../../common/Desplegable";
 import { Chip } from "../../common/Chip";
 import { TagPicker } from "../../ui/uploads";
@@ -27,11 +27,10 @@ interface Props {
   destacados?: string[];
   onCambiarReq: (r: Requisito) => void;
   onConfirmar: () => void;
-  onEditarVoz: () => void;
 }
 
 export function PasoPerfil({
-  v, req, formadorNombre, bloqueado, hecho, destacados, onCambiarReq, onConfirmar, onEditarVoz,
+  v, req, formadorNombre, bloqueado, hecho, destacados, onCambiarReq, onConfirmar,
 }: Props) {
   const [editando, setEditando] = useState(false);
   const [todas, setTodas] = useState(false); // ver el catálogo completo en vez del recorte de la IA
@@ -99,9 +98,6 @@ export function PasoPerfil({
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
           <button type="button" className="btn ghost sm" disabled={bloqueado} onClick={() => setEditando(true)}>
             <Edit3 size={13} /> Editar
-          </button>
-          <button type="button" className="btn-voz" disabled={bloqueado} onClick={onEditarVoz}>
-            <i><Mic size={15} /></i> Editar con voz
           </button>
         </div>
       )}

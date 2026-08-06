@@ -79,7 +79,7 @@ export function PasoPublicacion({ req, destacados, acciones }: Props) {
       )}
 
       <div className="rev-titulin">Requisitos</div>
-      <PerfilResumen req={req} destacados={destacados} />
+      <PerfilResumen req={req} destacados={destacados} sinCondiciones />
 
       <div className="rev-titulin">Lo que ofrecemos</div>
       {grupo("Compensaciones y bonos", bonos(req).map((b) => b.titulo))}

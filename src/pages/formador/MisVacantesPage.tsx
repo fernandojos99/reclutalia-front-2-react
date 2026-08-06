@@ -11,13 +11,14 @@ import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
 import { FasesBar } from "../../components/common/FasesBar";
 import { PlantillaCards } from "../../components/formador/PlantillaCards";
+import { OrganizacionCard } from "../../components/formador/OrganizacionCard";
 import { candidatoElegido } from "../../utils/fases";
 import { diasActivaLabel } from "../../utils/format";
 import { PIPE_IDX } from "../../constants/catalogos";
 
 export function MisVacantesPage() {
-  const { formadorId } = useDemo();
-  const { vacantes, loading } = useData();
+  const { formadorId, toast } = useDemo();
+  const { vacantes, formadores, loading } = useData();
   const navigate = useNavigate();
   const [soloCompletadas, setSoloCompletadas] = useState(false);
   const [vista, setVista] = useState<"plantilla" | "progreso">("plantilla");
@@ -25,6 +26,7 @@ export function MisVacantesPage() {
   if (loading) return <p>Cargando…</p>;
 
   const mias = vacantes.filter((v) => v.formadorId === formadorId);
+  const formador = formadores.find((f) => f.id === formadorId);
   const completadas = mias.filter((v) => v.estado === "cerrada").length;
   const activos = mias.reduce(
     (a, v) => a + Object.values(v.pipeline).filter((p) => (PIPE_IDX[p.estado] ?? -1) >= 0 && p.estado !== "contratado").length,
@@ -55,6 +57,14 @@ export function MisVacantesPage() {
           <b style={{ color: completadas ? "var(--ok)" : "inherit" }}>{completadas}</b><span>Vacantes completadas</span>
         </div>
       </div>
+
+      {formador && (
+        <OrganizacionCard
+          formador={formador}
+          vacantes={mias}
+          onSolicitar={() => toast("Solicitud de ajustes enviada al administrador")}
+        />
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 12px", flexWrap: "wrap" }}>
         <h3 style={{ fontSize: 15 }}>{titulo}</h3>

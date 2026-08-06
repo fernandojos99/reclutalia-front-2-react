@@ -1,9 +1,9 @@
 /**
  * Asistente "Revisar vacante" (/formador/vacante/:vacId/revisar).
  *
- * Cuatro bloques de verificación + "Editar con voz" + la publicación. En ESCRITORIO son listas
- * desplegables (acordeón); en CELULAR son tabs de una sola palabra. La estructura cambia de verdad
- * según el dispositivo, por eso hace falta `useIsMobile()` y no basta con una media query.
+ * Cuatro bloques de verificación + "Editar con voz" + la publicación, navegados con tabs de una
+ * sola palabra. Son los mismos tabs en escritorio y en celular (`.tabs` ya hace scroll horizontal
+ * cuando no caben), así que aquí no hace falta distinguir el dispositivo.
  *
  * "Continuar a publicación" se esconde mientras se está dictando: solo reaparece cuando el
  * dictado ya generó su vista previa (pantalla 7 de `EditarVoz`).
@@ -13,10 +13,9 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ChevronDown, CheckCircle2, Clock, MapPin, Mic, Rocket, Users } from "lucide-react";
+import { CheckCircle2, Clock, MapPin, Rocket, Users } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
-import { useIsMobile } from "../../hooks/useIsMobile";
 import { Chip } from "../../components/common/Chip";
 import { CambiosResumen } from "../../components/common/CambiosResumen";
 import { PasoPerfil } from "../../components/formador/revisar/PasoPerfil";
@@ -29,7 +28,7 @@ import { sueldoMensual } from "../../constants/paqueteVacante";
 import { money } from "../../utils/format";
 import type { Requisito } from "../../types/models/domain";
 
-/** Los 4 bloques a verificar. `tab` es la etiqueta de una palabra que se usa en móvil. */
+/** Los 4 bloques a verificar. `tab` es la etiqueta de una palabra de la barra de navegación. */
 const BLOQUES = [
   { tab: "Perfil", titulo: "Verifica el perfil" },
   { tab: "Compensación", titulo: "Paquete de compensación" },
@@ -46,7 +45,6 @@ export function RevisarVacantePage() {
   const { vacantes, formadores, actions } = useData();
   const { toast } = useDemo();
   const navigate = useNavigate();
-  const movil = useIsMobile();
 
   const v = vacantes.find((x) => x.id === vacId);
 
@@ -98,7 +96,6 @@ export function RevisarVacantePage() {
           bloqueado={bloqueado} hecho={confirmados[0]} destacados={destacados}
           onCambiarReq={setDraft}
           onConfirmar={() => confirmar(0)}
-          onEditarVoz={() => irA(VOZ)}
         />
       );
     }
@@ -167,81 +164,40 @@ export function RevisarVacantePage() {
   const puedePublicar = listos && (abierto !== VOZ || vozPaso === 7);
 
   /**
-   * Único punto para cambiar de bloque/tab. Al ENTRAR a voz hay que resetear `vozPaso` aquí y no
-   * esperar al efecto de `EditarVoz`: si no, el bloque de publicación seguiría visible un render
-   * con el 7 viejo y parpadearía.
+   * Único punto para cambiar de tab. Al ENTRAR a voz hay que resetear `vozPaso` aquí y no esperar
+   * al efecto de `EditarVoz`: si no, el tab de publicación seguiría habilitado un render con el 7
+   * viejo.
    */
   const irA = (i: number) => {
     if (i === VOZ) setVozPaso(5);
     setAbierto(i);
   };
-  /** Igual que `irA`, pero plegando el bloque si ya estaba abierto (acordeón de escritorio). */
-  const alternarA = (i: number) => irA(abierto === i ? -1 : i);
 
   const tituloBloque = (i: number) =>
     i === VOZ ? "Editar con voz" : i === PUBLICACION ? "Publicación" : BLOQUES[i].titulo;
 
-  // ── Celular: tabs de una palabra ──
-  if (movil) {
-    const tabs = [...BLOQUES.map((b) => b.tab), "Voz", "Publicación"];
-    // En escritorio se puede colapsar todo (abierto = -1); al pasar a móvil hay que elegir un tab.
-    const tab = abierto >= 0 && abierto <= PUBLICACION ? abierto : 0;
-    return (
-      <div>
-        {header}
-        <div className="tabs">
-          {tabs.map((t, i) => (
-            <button key={t} className={"tab" + (tab === i ? " on" : "")}
-              disabled={i === PUBLICACION && !puedePublicar}
-              onClick={() => irA(i)}>
-              {i < BLOQUES.length && confirmados[i] ? "✓ " : ""}{t}
-            </button>
-          ))}
-        </div>
-        <h3 style={{ fontSize: 15, marginBottom: 12 }}>{tituloBloque(tab)}</h3>
-        {cuerpo(tab)}
-      </div>
-    );
-  }
+  // ── Tabs de una palabra (mismo layout en escritorio y celular) ──
+  const tabs = [...BLOQUES.map((b) => b.tab), "Voz", "Publicación"];
+  // Con tabs siempre hay uno activo: `abierto = -1` (cancelar el dictado) vuelve al primero.
+  const tab = abierto >= 0 && abierto <= PUBLICACION ? abierto : 0;
 
-  // ── Navegador: listas desplegables ──
   return (
     <div>
       {header}
-      {BLOQUES.map((b, i) => (
-        <div className={"rev-bloque" + (abierto === i ? " abierto" : "") + (confirmados[i] ? " hecho" : "")} key={b.tab}>
-          <button type="button" className="rev-hd" aria-expanded={abierto === i}
-            onClick={() => alternarA(i)}>
-            <span className="rev-n">{confirmados[i] ? <CheckCircle2 size={13} /> : i + 1}</span>
-            <b>{b.titulo}</b>
-            {confirmados[i] && <Chip tone="ok">Confirmado</Chip>}
-            <ChevronDown size={17} className="desp-chev" style={abierto === i ? { transform: "rotate(180deg)" } : undefined} />
+      <div className="tabs">
+        {tabs.map((t, i) => (
+          <button key={t} className={"tab" + (tab === i ? " on" : "")}
+            disabled={i === PUBLICACION && !puedePublicar}
+            onClick={() => irA(i)}>
+            {i < BLOQUES.length && confirmados[i] ? "✓ " : ""}{t}
           </button>
-          {abierto === i && <div className="rev-body">{cuerpo(i)}</div>}
-        </div>
-      ))}
-
-      <div className={"rev-bloque" + (abierto === VOZ ? " abierto" : "")} style={{ marginTop: 12 }}>
-        <button type="button" className="rev-hd" aria-expanded={abierto === VOZ}
-          onClick={() => alternarA(VOZ)}>
-          <span className="rev-n"><Mic size={12} /></span>
-          <b>Editar con voz</b>
-          <ChevronDown size={17} className="desp-chev" style={abierto === VOZ ? { transform: "rotate(180deg)" } : undefined} />
-        </button>
-        {abierto === VOZ && <div className="rev-body">{cuerpo(VOZ)}</div>}
+        ))}
       </div>
-
-      {puedePublicar && (
-        <div className={"rev-bloque" + (abierto === PUBLICACION ? " abierto" : "")} style={{ marginTop: 12 }}>
-          <button type="button" className="rev-hd" aria-expanded={abierto === PUBLICACION}
-            onClick={() => alternarA(PUBLICACION)}>
-            <span className="rev-n"><Rocket size={12} /></span>
-            <b>Continuar a publicación</b>
-            <ChevronDown size={17} className="desp-chev" style={abierto === PUBLICACION ? { transform: "rotate(180deg)" } : undefined} />
-          </button>
-          {abierto === PUBLICACION && <div className="rev-body">{cuerpo(PUBLICACION)}</div>}
-        </div>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <h3 style={{ fontSize: 15 }}>{tituloBloque(tab)}</h3>
+        {tab < BLOQUES.length && confirmados[tab] && <Chip tone="ok" icon={CheckCircle2}>Confirmado</Chip>}
+      </div>
+      {cuerpo(tab)}
     </div>
   );
 }

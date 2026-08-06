@@ -342,6 +342,11 @@ img.avatar{object-fit:cover;}
 .dm-input textarea{flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-2);background:var(--input-bg);color:var(--ink);outline:none;resize:none;max-height:110px;line-height:1.4;font-family:inherit;}
 @media(max-width:760px){.dm-list{width:auto;flex:1;}.dm[data-vista="lista"] .dm-thread{display:none;}.dm[data-vista="hilo"] .dm-list{display:none;}.dm-back{display:inline-flex;}}
 
+/* ── Marco organizacional (home del formador): organización, centro de costos y ajustes ── */
+.org-grid{display:flex;align-items:flex-start;gap:26px;flex-wrap:wrap;}
+.org-ajustes{margin-left:auto;flex-shrink:0;}
+@media(max-width:760px){.org-grid{gap:16px;}.org-ajustes{margin-left:0;width:100%;justify-content:center;}}
+
 /* ── Plantilla del equipo (home del formador): una tarjeta por posición ── */
 .plantilla-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch;}
 @media(max-width:1200px){.plantilla-grid{grid-template-columns:1fr 1fr;}}
