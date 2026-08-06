@@ -11,13 +11,12 @@ import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
 import { FasesBar } from "../../components/common/FasesBar";
 import { PlantillaCards } from "../../components/formador/PlantillaCards";
-import { OrganizacionCard } from "../../components/formador/OrganizacionCard";
 import { candidatoElegido } from "../../utils/fases";
 import { diasActivaLabel } from "../../utils/format";
 import { PIPE_IDX } from "../../constants/catalogos";
 
 export function MisVacantesPage() {
-  const { formadorId, toast } = useDemo();
+  const { formadorId } = useDemo();
   const { vacantes, formadores, loading } = useData();
   const navigate = useNavigate();
   const [soloCompletadas, setSoloCompletadas] = useState(false);
@@ -58,12 +57,6 @@ export function MisVacantesPage() {
         </div>
       </div>
 
-      {formador && (
-        <OrganizacionCard
-          formador={formador}
-          onSolicitar={() => toast("Solicitud de ajustes enviada al administrador")}
-        />
-      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 12px", flexWrap: "wrap" }}>
         <h3 style={{ fontSize: 15 }}>{titulo}</h3>
@@ -81,7 +74,7 @@ export function MisVacantesPage() {
 
       {enPlantilla ? (
         mias.length ? (
-          <PlantillaCards vacantes={mias} />
+          <PlantillaCards vacantes={mias} formador={formador} />
         ) : (
           <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
             El administrador aún no te asigna vacantes.

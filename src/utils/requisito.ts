@@ -9,7 +9,8 @@ export function crearRequisito(overrides: Partial<Requisito> = {}): Requisito {
     softSkills: [], aptitudes: [], turno: "Turno Mixto", ubicacionTrabajo: "CDMX", modalidad: "Presencial",
     ubicacionCandidato: "CDMX", radioKm: 25, salarioMin: 10_000, salarioMax: 20_000,
     horario: "9:00 – 18:00", dias: ["Lun", "Mar", "Mié", "Jue", "Vie"], numVacantes: 1,
-    examenMedico: false, tipoSede: "Corporativo", sede: "", unidadNegocio: "", tipoVacante: "Estándar",
+    examenMedico: false, tipoSede: "Corporativo", sede: "", unidadNegocio: "",
+    departamento: "", centroCostos: "", tipoVacante: "Estándar",
     puedeSerSuperior: false, ubicacionNoRelevante: false, expNoRelevante: false,
     edadMin: 18, edadMax: 65, edadNoRelevante: false, ...overrides,
   };

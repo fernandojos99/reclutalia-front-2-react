@@ -19,8 +19,8 @@ export function AccionesPaso({ hecho, bloqueado, label = "Confirmar", onConfirma
       <button type="button" className={"btn " + (hecho ? "ok" : "gold")} disabled={bloqueado} onClick={onConfirmar}>
         <CheckCircle2 size={16} /> {hecho ? "Confirmado" : label}
       </button>
-      <button type="button" className="btn ghost btn-chat" onClick={abrir} title="Resolver dudas con el asistente">
-        <MessageSquare size={16} />
+      <button type="button" className="btn ghost" onClick={abrir} title="Resolver dudas con el asistente">
+        <MessageSquare size={16} /> Solicitar modificaciones
       </button>
     </div>
   );

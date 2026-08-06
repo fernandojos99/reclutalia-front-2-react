@@ -50,6 +50,10 @@ export interface Requisito {
   tipoSede: string;
   sede: string;
   unidadNegocio: string;
+  /** Departamento al que cuelga la posición. */
+  departamento: string;
+  /** Centro de costos contra el que se presupuesta (6 dígitos). */
+  centroCostos: string;
   tipoVacante: string;
   puedeSerSuperior: boolean;
   ubicacionNoRelevante: boolean;

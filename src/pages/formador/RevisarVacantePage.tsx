@@ -100,6 +100,7 @@ export function RevisarVacantePage() {
           bloqueado={bloqueado} hecho={confirmados[0]} destacados={destacados}
           onCambiarReq={setDraft}
           onConfirmar={() => confirmar(0)}
+          onSolicitarAjustes={() => toast("Solicitud de ajustes enviada al administrador")}
         />
       );
     }

@@ -9,8 +9,9 @@
  */
 import { useState } from "react";
 import { Compass, ListChecks, Ban, Target, User, Edit3, X } from "lucide-react";
-import { FilaInfo } from "../../common/InfoTip";
+import { Desplegable } from "../../common/Desplegable";
 import { Chip } from "../../common/Chip";
+import { OrganizacionCard } from "../OrganizacionCard";
 import { TagPicker } from "../../ui/uploads";
 import { AccionesPaso } from "./AccionesPaso";
 import { PerfilResumen } from "./PerfilResumen";
@@ -28,10 +29,12 @@ interface Props {
   destacados?: string[];
   onCambiarReq: (r: Requisito) => void;
   onConfirmar: () => void;
+  /** Se llama con el texto de la solicitud de ajustes al marco organizacional de la vacante. */
+  onSolicitarAjustes: (texto: string) => void;
 }
 
 export function PasoPerfil({
-  v, req, formadorNombre, bloqueado, hecho, destacados, onCambiarReq, onConfirmar,
+  v, req, formadorNombre, bloqueado, hecho, destacados, onCambiarReq, onConfirmar, onSolicitarAjustes,
 }: Props) {
   const [editando, setEditando] = useState(false);
   const [todas, setTodas] = useState(false); // ver el catálogo completo en vez del recorte de la IA
@@ -42,7 +45,7 @@ export function PasoPerfil({
     <div>
       <div className="grid2" style={{ marginBottom: 4 }}>
         <div style={{ marginBottom: 10 }}>
-          <label>Vacante</label>
+          <label>Puesto</label>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <b style={{ fontSize: 15 }}>{req.titulo}</b><Chip>{v.id}</Chip>
           </div>
@@ -55,13 +58,15 @@ export function PasoPerfil({
         </div>
       </div>
 
+      <OrganizacionCard req={req} onSolicitar={onSolicitarAjustes} />
+
       <div className="rev-titulin">Mandato, responsabilidades y funciones</div>
-      <FilaInfo titulo="Mandato" icono={Compass} detalle={<p>{m.mandato}</p>} />
-      <FilaInfo titulo="Responsabilidades" icono={Target}
+      <Desplegable titulo="Mandato" icono={Compass} detalle={<p>{m.mandato}</p>} />
+      <Desplegable titulo="Responsabilidades" icono={Target}
         detalle={<ul>{m.responsabilidades.map((x) => <li key={x}>{x}</li>)}</ul>} />
-      <FilaInfo titulo="Funciones" icono={ListChecks}
+      <Desplegable titulo="Funciones" icono={ListChecks}
         detalle={<ul>{m.funciones.map((x) => <li key={x}>{x}</li>)}</ul>} />
-      <FilaInfo titulo="No funciones" icono={Ban}
+      <Desplegable titulo="No funciones" icono={Ban}
         detalle={<ul>{m.noFunciones.map((x) => <li key={x}>{x}</li>)}</ul>} />
 
       <div className="rev-titulin">Perfil del candidato</div>
@@ -96,7 +101,9 @@ export function PasoPerfil({
           <div className="field">
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <label style={{ marginBottom: 0 }}>Habilidades duras / técnicas</label>
-              <button type="button" className="btn ghost sm" style={{ marginLeft: "auto" }} onClick={() => setTodas((t) => !t)}>
+              {/* Oculto a propósito con `.oculto` (ver base.css). La lógica sigue viva: para
+                  recuperarlo basta con quitar esa clase. */}
+              <button type="button" className="btn ghost sm oculto" style={{ marginLeft: "auto" }} onClick={() => setTodas((t) => !t)}>
                 {todas ? "Ver solo las sugeridas" : "Ver catálogo completo"}
               </button>
             </div>
