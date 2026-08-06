@@ -401,6 +401,14 @@ img.avatar{object-fit:cover;}
 .desp-body li{margin-bottom:5px;}
 .desp-body > :last-child{margin-bottom:0;}
 
+/* ── Asistente "Revisar vacante": las dos secciones de primer nivel (Vacante / Publicación) ── */
+.sec-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.sec-tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;font-family:inherit;font-size:14px;font-weight:700;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink2);cursor:pointer;}
+.sec-tab:hover:not(:disabled){border-color:var(--gold);}
+.sec-tab.on{border-color:var(--gold);background:var(--gold-soft);color:var(--gold-dark);}
+.sec-tab:disabled{opacity:0.45;cursor:not-allowed;}
+.sec-tab-n{font-size:12px;font-weight:700;opacity:0.75;}
+
 /* ── Asistente "Revisar vacante": bloques, acciones y estados ── */
 .rev-bloque{border:1px solid var(--line);border-radius:var(--r-3);background:var(--paper);overflow:hidden;}
 .rev-bloque+.rev-bloque{margin-top:12px;}

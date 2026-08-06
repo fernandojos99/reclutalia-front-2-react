@@ -1,19 +1,22 @@
 /**
  * Asistente "Revisar vacante" (/formador/vacante/:vacId/revisar).
  *
- * Cuatro bloques de verificación + "Editar con voz" + la publicación, navegados con tabs de una
- * sola palabra. Son los mismos tabs en escritorio y en celular (`.tabs` ya hace scroll horizontal
- * cuando no caben), así que aquí no hace falta distinguir el dispositivo.
+ * Dos secciones de primer nivel:
+ *   · "Vacante"     — los 4 bloques a verificar, navegados con tabs de una sola palabra.
+ *   · "Publicación" — primero el dictado por voz y después el anuncio listo para publicar.
  *
- * "Continuar a publicación" se esconde mientras se está dictando: solo reaparece cuando el
- * dictado ya generó su vista previa (pantalla 7 de `EditarVoz`).
+ * La sección de publicación está bajo llave hasta confirmar los 4 bloques: es lo que impide
+ * publicar sin haber revisado. Al entrar siempre se arranca por la voz.
+ *
+ * Los mismos tabs sirven en escritorio y en celular (`.tabs` ya hace scroll horizontal cuando no
+ * caben), así que aquí no hace falta distinguir el dispositivo.
  *
  * Las ediciones viven en un borrador local (`draft`) y solo se persisten al publicar:
  * `editarVacante` (si hubo cambios) + `aprobarVacante`, que es lo que construye el Marketplace.
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { CheckCircle2, Clock, MapPin, Rocket, Users } from "lucide-react";
+import { CheckCircle2, Clock, MapPin, Mic, Rocket, Users } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
@@ -35,10 +38,6 @@ const BLOQUES = [
   { tab: "Beneficios", titulo: "Conoce y verifica los beneficios" },
   { tab: "Herramientas", titulo: "Conoce y verifica las herramientas" },
 ];
-// Índices de los dos bloques que NO son pasos confirmables (van fuera de BLOQUES, que define
-// la longitud de `confirmados`).
-const VOZ = 4;
-const PUBLICACION = 5;
 
 export function RevisarVacantePage() {
   const { vacId = "" } = useParams();
@@ -49,9 +48,11 @@ export function RevisarVacantePage() {
   const v = vacantes.find((x) => x.id === vacId);
 
   const [draft, setDraft] = useState<Requisito | null>(null);
+  const [seccion, setSeccion] = useState<"vacante" | "publicacion">("vacante");
+  /** Sub-estado de la sección de publicación: se entra siempre por la voz. */
+  const [fase, setFase] = useState<"voz" | "anuncio">("voz");
   const [abierto, setAbierto] = useState(0);
   const [confirmados, setConfirmados] = useState([false, false, false, false]);
-  const [vozPaso, setVozPaso] = useState<5 | 6 | 7>(5);
   const [destacados, setDestacados] = useState<string[]>([]);
   const [publicando, setPublicando] = useState(false);
 
@@ -66,11 +67,14 @@ export function RevisarVacantePage() {
   const bloqueado = v.estado === "cambios";
   const listos = confirmados.every(Boolean);
 
+  /** Entrar a publicar siempre arranca por la voz, aunque en una visita previa se llegara al anuncio. */
+  const irAPublicacion = () => { setFase("voz"); setSeccion("publicacion"); };
+
   const confirmar = (i: number) => {
     setConfirmados((c) => c.map((x, k) => (k === i ? true : x)));
-    // Tras el último paso se salta a publicación: el índice siguiente ya es el bloque de voz,
-    // que es opcional y no debe interponerse al terminar de verificar.
-    setAbierto(i + 1 === BLOQUES.length ? PUBLICACION : i + 1);
+    // Confirmado el último bloque, ya no queda nada que verificar: se pasa a publicar.
+    if (i + 1 === BLOQUES.length) irAPublicacion();
+    else setAbierto(i + 1);
   };
 
   const publicar = async () => {
@@ -87,7 +91,7 @@ export function RevisarVacantePage() {
     }
   };
 
-  /** Contenido de cada bloque. Se llama como función (no como componente) para no remontar. */
+  /** Contenido de cada bloque a verificar. Se llama como función (no como componente) para no remontar. */
   const cuerpo = (i: number) => {
     if (i === 0) {
       return (
@@ -101,19 +105,22 @@ export function RevisarVacantePage() {
     }
     if (i === 1) return <PasoCompensacion req={draft} hecho={confirmados[1]} bloqueado={bloqueado} onConfirmar={() => confirmar(1)} />;
     if (i === 2) return <PasoBeneficios hecho={confirmados[2]} bloqueado={bloqueado} onConfirmar={() => confirmar(2)} />;
-    if (i === 3) return <PasoHerramientas req={draft} hecho={confirmados[3]} bloqueado={bloqueado} onConfirmar={() => confirmar(3)} />;
-    if (i === VOZ) {
+    return <PasoHerramientas req={draft} hecho={confirmados[3]} bloqueado={bloqueado} onConfirmar={() => confirmar(3)} />;
+  };
+
+  /** Sección "Publicación": el dictado primero, el anuncio después. */
+  const cuerpoPublicacion = () => {
+    if (fase === "voz") {
       return (
         <EditarVoz
           req={draft}
-          onPaso={setVozPaso}
           onAplicar={(r, campos) => {
             setDestacados(campos);
             setDraft(r);
-            setAbierto(0);
+            setFase("anuncio");
             toast("Publicación actualizada con lo que dictaste");
           }}
-          onCancelar={() => irA(-1)}
+          onOmitir={() => setFase("anuncio")}
         />
       );
     }
@@ -125,6 +132,9 @@ export function RevisarVacantePage() {
             <button type="button" className="btn gold" disabled={publicando || bloqueado} onClick={() => void publicar()}>
               {publicada ? <Users size={16} /> : <Rocket size={16} />}{" "}
               {publicada ? "Ver el Marketplace de talento" : publicando ? "Publicando…" : "Publicar vacante"}
+            </button>
+            <button type="button" className="btn ghost" onClick={() => setFase("voz")}>
+              <Mic size={15} /> Volver a dictar
             </button>
             <Link className="btn ghost" to={`/formador/vacante/${v.id}`}>Ver el proceso completo</Link>
           </>
@@ -160,44 +170,51 @@ export function RevisarVacantePage() {
     </>
   );
 
-  // Mientras se dicta o se procesa, la publicación no se ofrece: espera a la vista previa (paso 7).
-  const puedePublicar = listos && (abierto !== VOZ || vozPaso === 7);
-
-  /**
-   * Único punto para cambiar de tab. Al ENTRAR a voz hay que resetear `vozPaso` aquí y no esperar
-   * al efecto de `EditarVoz`: si no, el tab de publicación seguiría habilitado un render con el 7
-   * viejo.
-   */
-  const irA = (i: number) => {
-    if (i === VOZ) setVozPaso(5);
-    setAbierto(i);
-  };
-
-  const tituloBloque = (i: number) =>
-    i === VOZ ? "Editar con voz" : i === PUBLICACION ? "Publicación" : BLOQUES[i].titulo;
-
-  // ── Tabs de una palabra (mismo layout en escritorio y celular) ──
-  const tabs = [...BLOQUES.map((b) => b.tab), "Voz", "Publicación"];
-  // Con tabs siempre hay uno activo: `abierto = -1` (cancelar el dictado) vuelve al primero.
-  const tab = abierto >= 0 && abierto <= PUBLICACION ? abierto : 0;
+  const hechos = confirmados.filter(Boolean).length;
+  const enVacante = seccion === "vacante";
+  const tab = abierto >= 0 && abierto < BLOQUES.length ? abierto : 0;
 
   return (
     <div>
       {header}
-      <div className="tabs">
-        {tabs.map((t, i) => (
-          <button key={t} className={"tab" + (tab === i ? " on" : "")}
-            disabled={i === PUBLICACION && !puedePublicar}
-            onClick={() => irA(i)}>
-            {i < BLOQUES.length && confirmados[i] ? "✓ " : ""}{t}
-          </button>
-        ))}
+
+      <div className="sec-tabs">
+        <button type="button" className={"sec-tab" + (enVacante ? " on" : "")}
+          onClick={() => setSeccion("vacante")}>
+          Vacante
+          {hechos > 0 && <span className="sec-tab-n">✓ {hechos}/{BLOQUES.length}</span>}
+        </button>
+        <button type="button" className={"sec-tab" + (!enVacante ? " on" : "")}
+          disabled={!listos}
+          title={listos ? undefined : `Confirma los ${BLOQUES.length} bloques de la vacante para poder publicar (van ${hechos})`}
+          onClick={irAPublicacion}>
+          Publicación
+        </button>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <h3 style={{ fontSize: 15 }}>{tituloBloque(tab)}</h3>
-        {tab < BLOQUES.length && confirmados[tab] && <Chip tone="ok" icon={CheckCircle2}>Confirmado</Chip>}
-      </div>
-      {cuerpo(tab)}
+
+      {enVacante ? (
+        <>
+          <div className="tabs">
+            {BLOQUES.map((b, i) => (
+              <button key={b.tab} className={"tab" + (tab === i ? " on" : "")} onClick={() => setAbierto(i)}>
+                {confirmados[i] ? "✓ " : ""}{b.tab}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+            <h3 style={{ fontSize: 15 }}>{BLOQUES[tab].titulo}</h3>
+            {confirmados[tab] && <Chip tone="ok" icon={CheckCircle2}>Confirmado</Chip>}
+          </div>
+          {cuerpo(tab)}
+        </>
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+            <h3 style={{ fontSize: 15 }}>{fase === "voz" ? "Editar con voz" : "Publicación"}</h3>
+          </div>
+          {cuerpoPublicacion()}
+        </>
+      )}
     </div>
   );
 }

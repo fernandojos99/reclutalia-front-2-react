@@ -10,7 +10,7 @@
  *      marcados, para aplicarla o descartarla.
  */
 import { useEffect, useState } from "react";
-import { Mic, Square, Loader2, CheckCircle2, X, Sparkles } from "lucide-react";
+import { Mic, Square, Loader2, CheckCircle2, X, Sparkles, ArrowRight } from "lucide-react";
 import { PasoPublicacion } from "./PasoPublicacion";
 import { TRANSCRIPT_DEMO, CAMPOS_VOZ, interpretarTranscript } from "../../../utils/perfilIA";
 import type { Requisito } from "../../../types/models/domain";
@@ -26,20 +26,16 @@ interface Props {
   req: Requisito;
   /** Devuelve el requisito ya fusionado y los nombres de campo que cambiaron. */
   onAplicar: (r: Requisito, campos: string[]) => void;
-  onCancelar: () => void;
-  /** Avisa en qué pantalla va el dictado: el asistente oculta "Continuar a publicación" hasta la 7. */
-  onPaso?: (p: 5 | 6 | 7) => void;
+  /** Sale del dictado sin aplicar nada: lleva al anuncio tal cual está el borrador. */
+  onOmitir: () => void;
 }
 
-export function EditarVoz({ req, onAplicar, onCancelar, onPaso }: Props) {
+export function EditarVoz({ req, onAplicar, onOmitir }: Props) {
   const [paso, setPaso] = useState<5 | 6 | 7>(5);
   const [grabando, setGrabando] = useState(false);
   const [texto, setTexto] = useState("");
   const [propuesta, setPropuesta] = useState<Partial<Requisito> | null>(null);
   const [msg, setMsg] = useState(0);
-
-  // El asistente necesita saber en qué pantalla vamos para decidir si ya puede ofrecer publicar.
-  useEffect(() => { onPaso?.(paso); }, [paso, onPaso]);
 
   // Grabación simulada: 2.5 s de animación y luego el transcript enlatado.
   useEffect(() => {
@@ -102,7 +98,9 @@ export function EditarVoz({ req, onAplicar, onCancelar, onPaso }: Props) {
           <button type="button" className="btn gold" disabled={!texto.trim() || grabando} onClick={() => { setMsg(0); setPaso(6); }}>
             Continuar
           </button>
-          <button type="button" className="btn ghost" onClick={onCancelar}>Cancelar</button>
+          <button type="button" className="btn ghost" onClick={onOmitir}>
+            Omitir dictado <ArrowRight size={15} />
+          </button>
         </div>
       </div>
     );
@@ -151,7 +149,7 @@ export function EditarVoz({ req, onAplicar, onCancelar, onPaso }: Props) {
             <button type="button" className="btn ghost" onClick={() => { setPropuesta(null); setPaso(5); }}>
               Volver a dictar
             </button>
-            <button type="button" className="btn ghost" onClick={onCancelar}><X size={15} /> Descartar</button>
+            <button type="button" className="btn ghost" onClick={onOmitir}><X size={15} /> Descartar</button>
           </>
         }
       />
