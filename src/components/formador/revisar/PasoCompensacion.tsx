@@ -1,8 +1,8 @@
-/** Pantalla 2 · Paquete de compensación: sueldo, bonos, prestaciones y otros. */
+/** Pantalla 2 · Paquete de compensación: el sueldo destacado y los conceptos que lo acompañan. */
 import { Banknote } from "lucide-react";
-import { Desplegable } from "../../common/Desplegable";
+import { FilaInfo } from "../../common/InfoTip";
 import { AccionesPaso } from "./AccionesPaso";
-import { bonos, sueldoMensual, PRESTACIONES, OTROS } from "../../../constants/paqueteVacante";
+import { bonos, sueldoMensual } from "../../../constants/paqueteVacante";
 import { money } from "../../../utils/format";
 import type { Requisito } from "../../../types/models/domain";
 
@@ -31,13 +31,7 @@ export function PasoCompensacion({ req, hecho, bloqueado, onConfirmar }: Props) 
       </div>
 
       <div className="rev-titulin">Compensaciones y bonos</div>
-      {bonos(req).map((b) => <Desplegable key={b.titulo} titulo={b.titulo} extra={b.extra} detalle={<p>{b.detalle}</p>} />)}
-
-      <div className="rev-titulin">Prestaciones</div>
-      {PRESTACIONES.map((p) => <Desplegable key={p.titulo} titulo={p.titulo} extra={p.extra} detalle={<p>{p.detalle}</p>} />)}
-
-      <div className="rev-titulin">Otros</div>
-      {OTROS.map((o) => <Desplegable key={o.titulo} titulo={o.titulo} extra={o.extra} detalle={<p>{o.detalle}</p>} />)}
+      {bonos(req).map((b) => <FilaInfo key={b.titulo} titulo={b.titulo} extra={b.extra} detalle={<p>{b.detalle}</p>} />)}
 
       <AccionesPaso hecho={hecho} bloqueado={bloqueado} onConfirmar={onConfirmar} />
     </div>

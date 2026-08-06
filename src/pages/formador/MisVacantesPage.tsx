@@ -61,7 +61,6 @@ export function MisVacantesPage() {
       {formador && (
         <OrganizacionCard
           formador={formador}
-          vacantes={mias}
           onSolicitar={() => toast("Solicitud de ajustes enviada al administrador")}
         />
       )}

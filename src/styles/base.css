@@ -356,6 +356,7 @@ img.avatar{object-fit:cover;}
 .plant-card.libre{border-left-color:var(--gold);}
 .plant-card.libre:hover{border-left-color:var(--gold);}
 .plant-nom{display:flex;align-items:center;gap:10px;min-width:0;}
+.plant-ajustar{display:inline-flex;align-items:center;gap:3px;margin-left:auto;font-size:11.5px;font-weight:700;color:var(--gray);white-space:nowrap;}
 .plant-nom b{font-size:14.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;}
 .plant-puesto{font-size:12.5px;color:var(--gray);font-weight:600;}
 .plant-sueldo{font-size:18px;font-weight:800;color:var(--gold-dark);letter-spacing:-0.02em;}
@@ -364,6 +365,25 @@ img.avatar{object-fit:cover;}
 .plant-viables:hover{background:#E4E7FF;}
 .plant-viables.vacio{border-color:var(--line);background:var(--bg);color:var(--gray);cursor:default;}
 .plant-viables.cubierta{border-style:solid;border-color:#BBDFC6;background:var(--ok-soft);color:var(--ok);cursor:default;}
+
+/* ── Fila de concepto + tooltip informativo (sustituye al desplegable) ── */
+.fila-info{display:flex;align-items:center;gap:9px;padding:9px 13px;border:1px solid var(--line);border-radius:var(--r-2);background:var(--paper);font-size:13.5px;color:var(--ink);}
+.fila-info+.fila-info{margin-top:8px;}
+.fila-info b{flex:1;min-width:0;font-weight:700;}
+.fila-info-ico{color:var(--gold-dark);flex-shrink:0;}
+.fila-info-extra{font-size:12.5px;font-weight:700;color:var(--gold-dark);white-space:nowrap;}
+
+.infotip{position:relative;display:inline-flex;flex-shrink:0;}
+.infotip-btn{display:inline-flex;align-items:center;justify-content:center;padding:2px;border:none;background:none;color:var(--gray);border-radius:var(--r-pill);line-height:0;}
+.infotip-btn:hover,.infotip-btn.on{color:var(--ai);}
+.infotip-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+/* El panel se ancla a la derecha del icono para no salirse por el borde de la tarjeta. */
+.infotip-panel{position:absolute;right:0;bottom:calc(100% + 8px);z-index:90;width:max-content;max-width:min(320px,72vw);padding:10px 12px;border-radius:var(--r-2);background:var(--ink);color:var(--paper);font-size:12.5px;font-weight:400;line-height:1.5;text-align:left;box-shadow:var(--shadow-modal);}
+.infotip-panel ul{margin:0;padding-left:16px;}
+.infotip-panel li{margin-bottom:4px;}
+.infotip-panel li:last-child{margin-bottom:0;}
+.infotip-panel p{margin:0;}
+@media(max-width:560px){.infotip-panel{max-width:min(260px,80vw);}}
 
 /* ── Ítem desplegable genérico (flecha invertida) ── */
 .desp{border:1px solid var(--line);border-radius:var(--r-2);background:var(--paper);overflow:hidden;}

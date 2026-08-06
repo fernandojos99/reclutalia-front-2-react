@@ -55,7 +55,6 @@ export function PlantillaCards({ vacantes }: { vacantes: Vacante[] }) {
             key={v.id}
             role="button"
             tabIndex={0}
-            title={`Revisar ${v.req.titulo}`}
             onClick={() => navigate(`/formador/vacante/${v.id}/revisar`)}
             onKeyDown={(e) => { if (e.key === "Enter") navigate(`/formador/vacante/${v.id}/revisar`); }}
           >
@@ -68,7 +67,8 @@ export function PlantillaCards({ vacantes }: { vacantes: Vacante[] }) {
               ) : (
                 <>
                   <Chip tone="gold">Disponible</Chip>
-                  <span style={{ marginLeft: "auto" }}><ChevronRight size={16} color="var(--gray)" /></span>
+                  {/* Etiqueta siempre visible: la acción de la tarjeta no debe depender del hover. */}
+                  <span className="plant-ajustar">Ajustar perfil <ChevronRight size={14} /></span>
                 </>
               )}
             </div>
@@ -88,13 +88,16 @@ export function PlantillaCards({ vacantes }: { vacantes: Vacante[] }) {
                 className="plant-viables"
                 title={estimado
                   ? "Estimación sobre el marketplace; el definitivo se arma al publicar la vacante"
-                  : "Ver los candidatos en el Marketplace de talento"}
-                onClick={(e) => { e.stopPropagation(); navigate(`/formador/vacante/${v.id}?tab=1`); }}
+                  : "Ir a la etapa actual del proceso"}
+                // Sin `?tab=`, VacanteDetailPage resuelve el tab con `tabInicial(v)` y aterriza en
+                // la etapa viva del proceso. La estimación sí va al Marketplace: aún no hay proceso.
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(estimado ? `/formador/vacante/${v.id}?tab=1` : `/formador/vacante/${v.id}`);
+                }}
               >
                 <Users size={14} />
-                {estimado
-                  ? `~${n} compatibles estimados`
-                  : `${n} candidato${n === 1 ? "" : "s"} en el Marketplace`}
+                {estimado ? `~${n} compatibles estimados` : "Continuar proceso"}
               </button>
             ) : (
               <div className="plant-viables vacio">

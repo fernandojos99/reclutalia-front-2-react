@@ -69,44 +69,48 @@ export function mrfn(req: Requisito): MRFN {
 export const sueldoMensual = (req: Requisito): number =>
   req.sueldo ?? Math.round((req.salarioMin + req.salarioMax) / 2 / 500) * 500;
 
-/** Bonos típicos de una oferta en México, escalados sobre el sueldo de la vacante. */
+/**
+ * Conceptos del paquete de compensación, escalados sobre el sueldo de la vacante.
+ * Los montos se derivan con porcentajes fijos: mismo requisito ⇒ mismo resultado (el proyecto
+ * prohíbe la aleatoriedad real).
+ */
 export function bonos(req: Requisito): Item[] {
   const s = sueldoMensual(req);
   return [
     {
-      titulo: "Bono de productividad trimestral",
-      extra: `hasta ${money(Math.round((s * 0.5) / 100) * 100)}`,
+      titulo: "Sueldo",
+      extra: `${money(s)} /mes`,
       detalle:
-        "Se paga en abril, julio, octubre y enero según el cumplimiento de los indicadores del área. " +
-        "Equivale hasta a medio sueldo mensual y requiere haber cerrado el trimestre completo en la posición.",
+        `Sueldo mensual bruto de la posición. El rango autorizado del puesto va de ` +
+        `${money(req.salarioMin)} a ${money(req.salarioMax)}; el monto final se define al emitir la carta oferta.`,
     },
     {
-      titulo: "Bono de puntualidad y asistencia",
-      extra: `${money(Math.round((s * 0.08) / 50) * 50)} /mes`,
+      titulo: "Prestaciones",
+      extra: "de ley y superiores",
       detalle:
-        "Se otorga íntegro al mes sin retardos ni faltas injustificadas. Se pierde con la segunda incidencia " +
-        "del periodo y se recupera automáticamente al mes siguiente.",
+        "Aguinaldo de 30 días (contra los 15 de la LFT), prima vacacional del 40 % y meses de abono " +
+        "acumulables por antigüedad. Aplican desde el alta y se prorratean si el ingreso ocurre durante el año.",
     },
     {
-      titulo: "Incentivo por resultados",
-      extra: "variable",
+      titulo: "Compensación variable",
+      extra: `hasta ${money(Math.round((s * 0.18) / 100) * 100)} /mes`,
       detalle:
-        "Esquema variable ligado a las metas individuales y de sucursal. Se calcula sobre el cumplimiento " +
-        "mensual y se deposita junto con la segunda quincena del mes siguiente.",
+        "Parte variable ligada al cumplimiento de las metas individuales y del área. Se calcula sobre el " +
+        "resultado mensual y se deposita con la segunda quincena del mes siguiente.",
     },
     {
-      titulo: "Aguinaldo superior al de ley",
-      extra: "30 días",
+      titulo: "Bono anual",
+      extra: `hasta ${money(Math.round((s * 2) / 100) * 100)}`,
       detalle:
-        "30 días de sueldo contra los 15 que marca la LFT. Se paga a más tardar el 15 de diciembre y se " +
-        "prorratea si el ingreso ocurrió durante el año.",
+        "Bono por desempeño del ejercicio, equivalente hasta a dos sueldos mensuales. Se evalúa en enero " +
+        "sobre el año cerrado y requiere haber cubierto el ejercicio completo en la posición.",
     },
     {
-      titulo: "Fondo de ahorro",
-      extra: "13 % con aportación de la empresa",
+      titulo: "Vales de gasolina",
+      extra: `${money(Math.round((s * 0.06) / 50) * 50)} /mes`,
       detalle:
-        "El colaborador aporta hasta el 13 % de su sueldo y la empresa aporta el mismo monto, con el tope " +
-        "deducible de ley. Se entrega en diciembre junto con los rendimientos generados.",
+        "Apoyo de combustible depositado en monedero electrónico el primer día hábil de cada mes. No es " +
+        "acumulable entre periodos y se prorratea el mes de ingreso.",
     },
   ];
 }

@@ -10,7 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Chip } from "../../common/Chip";
 import { PerfilResumen } from "./PerfilResumen";
-import { bonos, herramientas, sueldoMensual, BENEFICIOS, PRESTACIONES } from "../../../constants/paqueteVacante";
+import { bonos, herramientas, sueldoMensual, BENEFICIOS } from "../../../constants/paqueteVacante";
 import { money } from "../../../utils/format";
 import type { Requisito } from "../../../types/models/domain";
 
@@ -83,7 +83,6 @@ export function PasoPublicacion({ req, destacados, acciones }: Props) {
 
       <div className="rev-titulin">Lo que ofrecemos</div>
       {grupo("Compensaciones y bonos", bonos(req).map((b) => b.titulo))}
-      {grupo("Prestaciones", PRESTACIONES.map((p) => p.titulo))}
       {grupo("Beneficios", BENEFICIOS.map((b) => b.titulo))}
       {grupo("Herramientas de trabajo", herramientas(req).map((h) => h.titulo))}
 
