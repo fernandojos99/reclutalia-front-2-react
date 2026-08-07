@@ -6,8 +6,9 @@
  * Todo se DERIVA de las vacantes reales (`useData()`), no hay estado ni endpoint nuevo.
  * Los conectores del árbol son pseudo-elementos CSS (ver `.org-*` en base.css), sin SVG.
  */
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, Users } from "lucide-react";
+import { CheckCircle2, ChevronRight, Users, Minus, Plus, RotateCcw } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
@@ -24,9 +25,15 @@ const MATCH_MIN = 28;
 /** Número de empleado del formador que encabeza el organigrama (dato de demo). */
 const NUM_EMPLEADO_FORMADOR = "112687";
 
+const ZOOM_MIN = 0.6, ZOOM_MAX = 1.6, ZOOM_PASO = 0.1;
+
 export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; formador?: Formador }) {
   const { candidatos } = useData();
   const navigate = useNavigate();
+  const [zoom, setZoom] = useState(1);
+
+  const ajustar = (d: number) =>
+    setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((z + d) * 10) / 10)));
 
   /** Persona que ocupa la posición, si la hay. */
   const ocupante = (v: Vacante): Candidato | undefined => {
@@ -48,8 +55,25 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
   if (!vacantes.length) return null;
 
   return (
-    <div className="org">
-      {formador && (
+    <div className="org-caja">
+      <div className="org-barra">
+        <b style={{ fontSize: 13.5 }}>Organigrama</b>
+        <div className="org-zoom">
+          <button type="button" className="btn ghost sm" title="Alejar"
+            disabled={zoom <= ZOOM_MIN} onClick={() => ajustar(-ZOOM_PASO)}><Minus size={13} /></button>
+          <span className="org-zoom-n">{Math.round(zoom * 100)}%</span>
+          <button type="button" className="btn ghost sm" title="Acercar"
+            disabled={zoom >= ZOOM_MAX} onClick={() => ajustar(ZOOM_PASO)}><Plus size={13} /></button>
+          <button type="button" className="btn ghost sm" title="Restablecer"
+            disabled={zoom === 1} onClick={() => setZoom(1)}><RotateCcw size={13} /></button>
+        </div>
+      </div>
+
+      {/* `zoom` (y no `transform: scale`) porque sí participa en el layout: las barras de scroll
+          internas salen correctas solas y el zoom queda confinado a este visor. */}
+      <div className="org-visor">
+        <div className="org" style={{ zoom }}>
+          {formador && (
         <div className="org-jefe">
           <div className="plant-card org-card-jefe">
             <div className="plant-nom">
@@ -130,6 +154,8 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
             </div>
           );
         })}
+        </div>
+        </div>
       </div>
     </div>
   );

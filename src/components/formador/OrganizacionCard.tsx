@@ -8,12 +8,16 @@
  * que el único camino es "Solicitar ajustes": describe el cambio y le llega al administrador.
  */
 import { useState } from "react";
-import { Building2, Network, Banknote, Send, SlidersHorizontal } from "lucide-react";
+import { Network, Banknote, Send, SlidersHorizontal, User } from "lucide-react";
 import { Modal } from "../common/Modal";
+import { Chip } from "../common/Chip";
 import type { Requisito } from "../../types/models/domain";
 
 interface Props {
   req: Requisito;
+  /** Identidad de la vacante: se muestra encabezando la misma tarjeta. */
+  vacId: string;
+  formadorNombre: string;
   /** Se llama con el texto de la solicitud al enviarla. */
   onSolicitar: (texto: string) => void;
 }
@@ -30,7 +34,7 @@ function Dato({ icono: Icono, l, c }: { icono: typeof Network; l: string; c: str
   );
 }
 
-export function OrganizacionCard({ req, onSolicitar }: Props) {
+export function OrganizacionCard({ req, vacId, formadorNombre, onSolicitar }: Props) {
   const [pidiendo, setPidiendo] = useState(false);
   const [texto, setTexto] = useState("");
   /** Guion para los campos que la vacante aún no tenga poblados. */
@@ -45,8 +49,22 @@ export function OrganizacionCard({ req, onSolicitar }: Props) {
   return (
     <>
       <div className="card" style={{ marginBottom: 18 }}>
+        <div className="grid2" style={{ marginBottom: 14 }}>
+          <div>
+            <label>Puesto</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <b style={{ fontSize: 15 }}>{req.titulo}</b><Chip>{vacId}</Chip>
+            </div>
+          </div>
+          <div>
+            <label>Formador asignado</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5 }}>
+              <User size={14} color="var(--gold-dark)" /> {formadorNombre}
+            </div>
+          </div>
+        </div>
+
         <div className="org-grid">
-          <Dato icono={Building2} l="Unidad de negocio" c={val(req.unidadNegocio)} />
           <Dato icono={Network} l="Departamento" c={val(req.departamento)} />
           <Dato icono={Banknote} l="Centro de costos" c={val(req.centroCostos)} />
           <button type="button" className="btn ghost sm org-ajustes" onClick={() => setPidiendo(true)}>
@@ -63,7 +81,7 @@ export function OrganizacionCard({ req, onSolicitar }: Props) {
         <Modal onClose={() => setPidiendo(false)}>
           <h3 style={{ marginBottom: 4 }}>Solicitar ajustes a la organización</h3>
           <p className="help" style={{ marginBottom: 12 }}>
-            {val(req.unidadNegocio)} · {val(req.departamento)} · CC {val(req.centroCostos)}. Describe
+            {val(req.departamento)} · CC {val(req.centroCostos)}. Describe
             qué hay que corregir (adscripción, departamento, centro de costos); el administrador lo
             revisará.
           </p>

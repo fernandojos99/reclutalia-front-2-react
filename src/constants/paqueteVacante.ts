@@ -6,7 +6,7 @@
  * el backend los persiste, este archivo es el único punto a reemplazar.
  */
 import {
-  Car, Laptop, MonitorCog, AppWindow, HeartPulse, Stethoscope, PiggyBank, ShieldCheck,
+  Car, Laptop, AppWindow, KeyRound, HeartPulse, Stethoscope, PiggyBank, ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { money } from "../utils/format";
@@ -252,22 +252,20 @@ export function herramientas(req: Requisito): Item[] {
           "resguardo y se renueva cada 4 años.",
     },
     {
-      titulo: "Sistema operativo",
-      icono: MonitorCog,
-      extra: pesado ? "Windows 11 Pro o macOS" : "Windows 11 Pro",
-      detalle: pesado
-        ? "Puedes elegir entre Windows 11 Pro y macOS según tu stack de trabajo. El equipo llega con el " +
-          "antivirus corporativo, VPN y cifrado de disco ya configurados."
-        : "Windows 11 Pro con la imagen corporativa: antivirus, VPN, cifrado de disco y las políticas de " +
-          "seguridad de la empresa preinstaladas.",
-    },
-    {
-      titulo: "Software y accesos",
+      titulo: "Software",
       icono: AppWindow,
       extra: `${software.length} herramientas`,
       detalle:
-        `Licencias y accesos que se dan de alta antes de tu primer día: ${software.join(", ")}. ` +
+        `Licencias instaladas en el equipo antes de tu primer día: ${software.join(", ")}. ` +
         "Cualquier alta adicional se solicita a Sistemas por el portal de servicios.",
+    },
+    {
+      titulo: "Accesos lógicos",
+      icono: KeyRound,
+      extra: "alta el primer día",
+      detalle:
+        "Usuario de red, correo corporativo, VPN y los permisos a los sistemas del puesto. Se dan " +
+        "de alta con tu número de empleado y se revocan automáticamente al causar baja.",
     },
   ];
 

@@ -350,6 +350,26 @@ img.avatar{object-fit:cover;}
 /* Oculta un control sin borrarlo del JSX: la lógica sigue viva, solo no se pinta. */
 .oculto{display:none !important;}
 
+/* ── Caja del organigrama: visor con zoom propio y alto acotado ── */
+/* El alto acotado es lo que confina el zoom: sin él, ampliar empujaría el resto de la página. */
+.org-caja{border:1px solid var(--line);border-radius:var(--r-3);background:var(--bg);overflow:hidden;}
+.org-barra{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--paper);flex-wrap:wrap;}
+.org-zoom{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.org-zoom-n{font-size:12.5px;font-weight:700;color:var(--ink2);min-width:44px;text-align:center;}
+.org-visor{overflow:auto;max-height:70vh;padding:18px 14px;-webkit-overflow-scrolling:touch;}
+@media(max-width:760px){.org-visor{max-height:60vh;}}
+
+/* ── Interruptor genérico (visibilidad del sueldo) ── */
+.switch{width:44px;height:25px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--bg);padding:2px;flex-shrink:0;cursor:pointer;transition:background .15s ease,border-color .15s ease;}
+.switch i{display:block;width:19px;height:19px;border-radius:var(--r-pill);background:var(--gray);transition:transform .15s ease,background .15s ease;}
+.switch.on{background:var(--ok-soft);border-color:#BBDFC6;}
+.switch.on i{background:var(--ok);transform:translateX(19px);}
+
+/* ── Editor de la publicación: filas de función editable ── */
+.fn-fila{display:flex;align-items:flex-start;gap:8px;}
+.fn-fila+.fn-fila{margin-top:8px;}
+.fn-fila textarea{flex:1;min-width:0;resize:vertical;line-height:1.45;}
+
 /* ── Organigrama del equipo (home del formador): jefe arriba, posiciones colgando ── */
 /* Los conectores son pseudo-elementos: sin SVG ni librerías. */
 .org{display:flex;flex-direction:column;align-items:center;}
@@ -479,8 +499,29 @@ img.avatar{object-fit:cover;}
 .pub-hero .chip.gold{background:var(--gold-soft);border-color:#F2D089;color:var(--gold-dark);}
 .pub-sueldo{font-size:26px;font-weight:800;color:var(--gold);letter-spacing:-0.02em;}
 @media(max-width:760px){.pub-hero{padding:20px 16px;}.pub-hero h2{font-size:18px;}.pub-sueldo{font-size:22px;}}
-/* Separador entre las secciones del anuncio (Descripción · Requisitos · Lo que ofrecemos). */
-.pub-sep{border:none;border-top:1px solid var(--line);margin:22px 0;}
+/* Las tres secciones del anuncio, pegadas: el borde compartido hace de separador. */
+.pub-bloques{margin-top:18px;border:1px solid var(--line);border-radius:var(--r-3);overflow:hidden;background:var(--paper);}
+.pub-bloque{padding:18px 20px;}
+.pub-bloque+.pub-bloque{border-top:1px solid var(--line);}
+
+/* Escala tipográfica única del anuncio. Antes convivían tres estilos para el mismo rango:
+   `.rev-titulin`, el <strong> del markdown y el <label> de PerfilResumen. */
+.pub-h{font-size:11px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--gray);margin:0 0 12px;}
+.pub-bloque label,
+.pub-bloque .desc-md strong{font-size:13px;font-weight:700;color:var(--ink);letter-spacing:0;text-transform:none;display:block;margin-bottom:6px;}
+.pub-bloque .desc-md p,
+.pub-bloque .desc-md li{font-size:13px;line-height:1.55;color:var(--ink2);}
+.pub-nota{font-size:12.5px;line-height:1.5;color:var(--ink2);margin:0;}
+
+/* Controles que solo existen en modo edición del anuncio. */
+.pub-edit-hero{margin:10px 0;}
+.pub-edit-hero label{color:#F3F1EA;font-size:11.5px;}
+.pub-edit-hero select{max-width:420px;}
+.pub-edit-hint{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#C9C9C9;margin-top:5px;}
+
+/* "+ Agregar" de los TagPicker: desactivado por ahora. La lógica sigue viva; para recuperarlo
+   basta con borrar esta regla. */
+.tag-add{display:none;}
 /* "Lo que ofrecemos": sin caja ni desplegable, misma tipografía que tenía dentro de `.desp`. */
 .ofrece-grupo+.ofrece-grupo{margin-top:14px;}
 .ofrece-sub{font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:6px;}

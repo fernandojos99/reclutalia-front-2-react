@@ -64,7 +64,7 @@ export function EditarVoz({ req, onAplicar, onOmitir }: Props) {
       <div>
         <h3 style={{ fontSize: 16, marginBottom: 4 }}>Cuéntanos qué estás buscando</h3>
         <p className="help" style={{ marginTop: 0 }}>
-          Describe con tus palabras el perfil de esta vacante: experiencia, habilidades, turno, ubicación y sueldo.
+          Describe con tus palabras al candidato ideal.
         </p>
 
         <div className="voz-wrap">

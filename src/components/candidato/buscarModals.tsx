@@ -48,7 +48,7 @@ export function DetalleVacanteModal({ v, cand, p, bloqueado, onAplicar, onClose 
             <Row l="Estudios" c={r.educacion + (r.puedeSerSuperior ? " o superior" : "")} />
             <Row l="Ubicación del trabajo" c={r.ubicacionTrabajo} /><Row l="Modalidad" c={r.modalidad} />
             <Row l="Horario" c={r.horario} /><Row l="Días" c={r.dias.join(", ")} />
-            <Row l="Sueldo mensual" c={money(r.sueldo ?? Math.round((r.salarioMin + r.salarioMax) / 2 / 500) * 500) + " /mes"} /><Row l="Posiciones" c={r.numVacantes} />
+            {!r.sueldoOculto && <Row l="Sueldo mensual" c={money(r.sueldo ?? Math.round((r.salarioMin + r.salarioMax) / 2 / 500) * 500) + " /mes"} />}<Row l="Posiciones" c={r.numVacantes} />
             {r.sede && <Row l="Sede" c={`${r.tipoSede} · ${r.sede}`} />}
             {r.unidadNegocio && <Row l="Unidad de Negocio" c={r.unidadNegocio} />}
           </div>

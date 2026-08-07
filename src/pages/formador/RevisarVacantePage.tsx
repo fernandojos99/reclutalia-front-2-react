@@ -16,7 +16,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { CheckCircle2, Clock, MapPin, Mic, Rocket, Users } from "lucide-react";
+import { CheckCircle2, Clock, Rocket, Users } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
@@ -27,13 +27,11 @@ import { PasoBeneficios } from "../../components/formador/revisar/PasoBeneficios
 import { PasoHerramientas } from "../../components/formador/revisar/PasoHerramientas";
 import { PasoPublicacion } from "../../components/formador/revisar/PasoPublicacion";
 import { EditarVoz } from "../../components/formador/revisar/EditarVoz";
-import { sueldoMensual } from "../../constants/paqueteVacante";
-import { money } from "../../utils/format";
 import type { Requisito } from "../../types/models/domain";
 
 /** Los 4 bloques a verificar. `tab` es la etiqueta de una palabra de la barra de navegación. */
 const BLOQUES = [
-  { tab: "Perfil", titulo: "Verifica el perfil" },
+  { tab: "Perfil", titulo: "Verificar perfil de puesto" },
   { tab: "Compensación", titulo: "Paquete de compensación" },
   { tab: "Beneficios", titulo: "Conoce y verifica los beneficios" },
   { tab: "Herramientas", titulo: "Conoce y verifica las herramientas" },
@@ -49,8 +47,8 @@ export function RevisarVacantePage() {
 
   const [draft, setDraft] = useState<Requisito | null>(null);
   const [seccion, setSeccion] = useState<"vacante" | "publicacion">("vacante");
-  /** Sub-estado de la sección de publicación: se entra siempre por la voz. */
-  const [fase, setFase] = useState<"voz" | "anuncio">("voz");
+  /** Sub-estado de la sección de publicación: se entra por la voz y se sale a editar el anuncio. */
+  const [fase, setFase] = useState<"voz" | "editar" | "final">("voz");
   const [abierto, setAbierto] = useState(0);
   const [confirmados, setConfirmados] = useState([false, false, false, false]);
   const [destacados, setDestacados] = useState<string[]>([]);
@@ -109,40 +107,54 @@ export function RevisarVacantePage() {
     return <PasoHerramientas req={draft} hecho={confirmados[3]} bloqueado={bloqueado} onConfirmar={() => confirmar(3)} />;
   };
 
-  /** Sección "Publicación": el dictado primero, el anuncio después. */
-  const cuerpoPublicacion = () => {
-    if (fase === "voz") {
-      return (
+  /** Acciones al pie del anuncio. Van en las dos sub-pestañas: publicar no debe exigir cambiar de tab. */
+  const accionesPublicacion = (
+    <>
+      <button type="button" className="btn gold" disabled={publicando || bloqueado} onClick={() => void publicar()}>
+        {publicada ? <Users size={16} /> : <Rocket size={16} />}{" "}
+        {publicada ? "Ver el Marketplace de talento" : publicando ? "Publicando…" : "Publicar vacante"}
+      </button>
+      <Link className="btn ghost" to={`/formador/vacante/${v.id}`}>Ver el proceso completo</Link>
+    </>
+  );
+
+  /**
+   * Sección "Publicación": dictar, editar el anuncio y verlo como el candidato.
+   *
+   * Las tres pestañas se pintan SIEMPRE, también durante el dictado. Antes vivían fuera de la
+   * rama de voz, así que dictando no había forma de llegar a "Editar" salvo aplicar o descartar
+   * — y con un dictado del que no se reconoce ningún campo, "Aplicar" está deshabilitado.
+   */
+  const cuerpoPublicacion = () => (
+    <>
+      <div className="tabs">
+        <button className={"tab" + (fase === "voz" ? " on" : "")} onClick={() => setFase("voz")}>Voz</button>
+        <button className={"tab" + (fase === "editar" ? " on" : "")} onClick={() => setFase("editar")}>Editar</button>
+        <button className={"tab" + (fase === "final" ? " on" : "")} onClick={() => setFase("final")}>Vista final</button>
+      </div>
+
+      {fase === "voz" ? (
         <EditarVoz
           req={draft}
           onAplicar={(r, campos) => {
             setDestacados(campos);
             setDraft(r);
-            setFase("anuncio");
+            setFase("editar");
             toast("Publicación actualizada con lo que dictaste");
           }}
-          onOmitir={() => setFase("anuncio")}
+          onOmitir={() => setFase("editar")}
         />
-      );
-    }
-    return (
-      <PasoPublicacion
-        req={draft} destacados={destacados}
-        acciones={
-          <>
-            <button type="button" className="btn gold" disabled={publicando || bloqueado} onClick={() => void publicar()}>
-              {publicada ? <Users size={16} /> : <Rocket size={16} />}{" "}
-              {publicada ? "Ver el Marketplace de talento" : publicando ? "Publicando…" : "Publicar vacante"}
-            </button>
-            <button type="button" className="btn ghost" onClick={() => setFase("voz")}>
-              <Mic size={15} /> Volver a dictar
-            </button>
-            <Link className="btn ghost" to={`/formador/vacante/${v.id}`}>Ver el proceso completo</Link>
-          </>
-        }
-      />
-    );
-  };
+      ) : fase === "editar" ? (
+        <PasoPublicacion req={draft} destacados={destacados} acciones={accionesPublicacion}
+          editable onCambiarReq={setDraft} />
+      ) : (
+        <>
+          <p className="help" style={{ marginTop: 0 }}>Así verá el anuncio el candidato.</p>
+          <PasoPublicacion req={draft} destacados={destacados} acciones={accionesPublicacion} />
+        </>
+      )}
+    </>
+  );
 
   const header = (
     <>
@@ -154,11 +166,6 @@ export function RevisarVacantePage() {
           {publicada
             ? <Chip tone="ok" icon={CheckCircle2}>Ya publicada</Chip>
             : <Chip tone="gold">Pendiente de publicar</Chip>}
-        </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-          <Chip icon={MapPin}>{draft.ubicacionTrabajo} · {draft.modalidad}</Chip>
-          <Chip icon={Clock}>{draft.turno || "Turno Mixto"}</Chip>
-          <Chip>{money(sueldoMensual(draft))} /mes</Chip>
         </div>
       </div>
       {bloqueado && (
@@ -212,6 +219,7 @@ export function RevisarVacantePage() {
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
             <h3 style={{ fontSize: 15 }}>{fase === "voz" ? "Editar con voz" : "Publicación"}</h3>
+
           </div>
           {cuerpoPublicacion()}
         </>

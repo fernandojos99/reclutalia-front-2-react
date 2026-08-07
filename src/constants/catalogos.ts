@@ -47,7 +47,9 @@ export const PROFESIONES = [
 ] as const;
 
 /** Turnos de trabajo (para `req.turno`). */
-export const TURNOS = ["Turno Matutino", "Turno Vespertino", "Turno Mixto"] as const;
+/** "Turno personalizado" abre los campos de horario y días (`req.horario` / `req.dias`). */
+export const TURNOS = ["Turno Matutino", "Turno Vespertino", "Turno Mixto", "Turno personalizado"] as const;
+export const TURNO_PERSONALIZADO = "Turno personalizado";
 
 export const AREAS = [
   "Tecnología", "Datos y Analítica", "Ventas", "Marketing", "Finanzas",

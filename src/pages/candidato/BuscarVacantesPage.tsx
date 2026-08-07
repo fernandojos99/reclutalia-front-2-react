@@ -105,7 +105,9 @@ export function BuscarVacantesPage() {
                   <MatchRing v={match} />
                 </div>
                 <div style={{ fontSize: 12.5, color: "var(--ink2)", lineHeight: 1.5 }}>{v.req.descripcion.length > 110 ? v.req.descripcion.slice(0, 110).trimEnd() + "…" : v.req.descripcion}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--gold-dark)" }}>{money(v.req.sueldo ?? Math.round((v.req.salarioMin + v.req.salarioMax) / 2 / 500) * 500)} /mes</div>
+                {!v.req.sueldoOculto && (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--gold-dark)" }}>{money(v.req.sueldo ?? Math.round((v.req.salarioMin + v.req.salarioMax) / 2 / 500) * 500)} /mes</div>
+                )}
                 <div className="help" style={{ marginTop: -4, display: "flex", alignItems: "center", gap: 4 }}><Calendar size={11} /> Publicada el {v.creada}</div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: "auto", flexWrap: "wrap" }}>
                   <button className="btn dark sm" onClick={() => setDetalle(v.id)}><FileText size={13} /> Ver detalles</button>

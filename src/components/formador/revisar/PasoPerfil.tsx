@@ -8,17 +8,24 @@
  * (simulación determinista de la IA), con acceso al catálogo entero a un clic.
  */
 import { useState } from "react";
-import { Compass, ListChecks, Ban, Target, User, Edit3, X } from "lucide-react";
+import { Compass, ListChecks, Ban, Target, Edit3, X } from "lucide-react";
 import { Desplegable } from "../../common/Desplegable";
-import { Chip } from "../../common/Chip";
 import { OrganizacionCard } from "../OrganizacionCard";
-import { TagPicker } from "../../ui/uploads";
+import { SkillsEditor } from "./SkillsEditor";
 import { AccionesPaso } from "./AccionesPaso";
 import { PerfilResumen } from "./PerfilResumen";
 import { mrfn } from "../../../constants/paqueteVacante";
-import { HARD_SKILLS, SOFT_SKILLS, CIUDADES, TURNOS } from "../../../constants/catalogos";
-import { skillsSugeridas } from "../../../utils/perfilIA";
+import { CIUDADES, DIAS, TURNOS, TURNO_PERSONALIZADO } from "../../../constants/catalogos";
 import type { Requisito, Vacante } from "../../../types/models/domain";
+
+/** El horario vive como un solo string ("9:00 – 18:00"); estos dos lo parten y lo rearman. */
+const horaDe = (horario: string, i: 0 | 1): string => {
+  const partes = (horario || "").split("–").map((s) => s.trim());
+  const h = partes[i] ?? "";
+  return /^\d{1,2}:\d{2}$/.test(h) ? h.padStart(5, "0") : "";
+};
+const unirHorario = (entrada: string, salida: string): string =>
+  entrada && salida ? `${entrada} – ${salida}` : entrada || salida;
 
 interface Props {
   v: Vacante;
@@ -37,28 +44,12 @@ export function PasoPerfil({
   v, req, formadorNombre, bloqueado, hecho, destacados, onCambiarReq, onConfirmar, onSolicitarAjustes,
 }: Props) {
   const [editando, setEditando] = useState(false);
-  const [todas, setTodas] = useState(false); // ver el catálogo completo en vez del recorte de la IA
   const m = mrfn(req);
-  const sugeridas = skillsSugeridas(req);
 
   return (
     <div>
-      <div className="grid2" style={{ marginBottom: 4 }}>
-        <div style={{ marginBottom: 10 }}>
-          <label>Puesto</label>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <b style={{ fontSize: 15 }}>{req.titulo}</b><Chip>{v.id}</Chip>
-          </div>
-        </div>
-        <div style={{ marginBottom: 10 }}>
-          <label>Formador asignado</label>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5 }}>
-            <User size={14} color="var(--gold-dark)" /> {formadorNombre}
-          </div>
-        </div>
-      </div>
-
-      <OrganizacionCard req={req} onSolicitar={onSolicitarAjustes} />
+      <OrganizacionCard req={req} vacId={v.id} formadorNombre={formadorNombre}
+        onSolicitar={onSolicitarAjustes} />
 
       <div className="rev-titulin">Mandato, responsabilidades y funciones</div>
       <Desplegable titulo="Mandato" icono={Compass} detalle={<p>{m.mandato}</p>} />
@@ -98,23 +89,38 @@ export function PasoPerfil({
               ))}
             </div>
           </div>
-          <div className="field">
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <label style={{ marginBottom: 0 }}>Habilidades duras / técnicas</label>
-              {/* Oculto a propósito con `.oculto` (ver base.css). La lógica sigue viva: para
-                  recuperarlo basta con quitar esa clase. */}
-              <button type="button" className="btn ghost sm oculto" style={{ marginLeft: "auto" }} onClick={() => setTodas((t) => !t)}>
-                {todas ? "Ver solo las sugeridas" : "Ver catálogo completo"}
-              </button>
+
+          {/* Los campos de horario solo existen si se eligió el turno a medida. */}
+          {req.turno === TURNO_PERSONALIZADO && (
+            <div className="card" style={{ marginBottom: 14 }}>
+              <div className="grid2">
+                <div className="field">
+                  <label>Hora de entrada</label>
+                  <input type="time" value={horaDe(req.horario, 0)}
+                    onChange={(e) => onCambiarReq({ ...req, horario: unirHorario(e.target.value, horaDe(req.horario, 1)) })} />
+                </div>
+                <div className="field">
+                  <label>Hora de salida</label>
+                  <input type="time" value={horaDe(req.horario, 1)}
+                    onChange={(e) => onCambiarReq({ ...req, horario: unirHorario(horaDe(req.horario, 0), e.target.value) })} />
+                </div>
+              </div>
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Días de trabajo</label>
+                <div className="tagpick">
+                  {DIAS.map((d) => (
+                    <button type="button" key={d} className={"tag" + (req.dias.includes(d) ? " on" : "")}
+                      onClick={() => onCambiarReq({
+                        ...req,
+                        dias: req.dias.includes(d) ? req.dias.filter((x) => x !== d) : [...req.dias, d],
+                      })}>{d}</button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <TagPicker options={todas ? HARD_SKILLS : sugeridas.hard} value={req.hardSkills}
-              onChange={(nv) => onCambiarReq({ ...req, hardSkills: nv })} addNew />
-          </div>
-          <div className="field">
-            <label>Habilidades blandas</label>
-            <TagPicker options={todas ? SOFT_SKILLS : sugeridas.soft} value={req.softSkills}
-              onChange={(nv) => onCambiarReq({ ...req, softSkills: nv })} addNew />
-          </div>
+          )}
+
+          <SkillsEditor req={req} onCambiarReq={onCambiarReq} />
           <button type="button" className="btn ghost sm" onClick={() => setEditando(false)}>
             <X size={13} /> Cerrar edición
           </button>

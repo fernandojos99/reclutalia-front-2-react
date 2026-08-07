@@ -54,6 +54,10 @@ export interface Requisito {
   departamento: string;
   /** Centro de costos contra el que se presupuesta (6 dígitos). */
   centroCostos: string;
+  /** Oculta el sueldo en lo que se publica hacia fuera (candidatos). */
+  sueldoOculto: boolean;
+  /** Relanza la búsqueda de candidatos cada vez que la posición se libera. */
+  busquedaAutomatica: boolean;
   tipoVacante: string;
   puedeSerSuperior: boolean;
   ubicacionNoRelevante: boolean;

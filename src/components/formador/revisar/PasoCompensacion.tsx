@@ -1,5 +1,4 @@
 /** Pantalla 2 · Paquete de compensación: el sueldo destacado y los conceptos que lo acompañan. */
-import { Banknote } from "lucide-react";
 import { FilaInfo } from "../../common/InfoTip";
 import { AccionesPaso } from "./AccionesPaso";
 import { bonos, sueldoMensual } from "../../../constants/paqueteVacante";
@@ -17,9 +16,10 @@ export function PasoCompensacion({ req, hecho, bloqueado, onConfirmar }: Props) 
   const s = sueldoMensual(req);
   return (
     <div>
-      <div className="aibox" style={{ marginBottom: 16 }}>
-        <div className="hd"><Banknote size={15} /> Verifica la compensación de la caja</div>
-      </div>
+      <p className="help" style={{ marginTop: 0, marginBottom: 16 }}>
+        Conoce y verifica el paquete de compensación; esta información se obtiene del sistema de
+        Compensalia.
+      </p>
 
       <div className="rev-titulin">Sueldo</div>
       <div className="card" style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>

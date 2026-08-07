@@ -72,7 +72,7 @@ export function TagPicker({ options, value, onChange, addNew }: {
         {options.map((o) => <button type="button" key={o} className={"tag" + (value.includes(o) ? " on" : "")} onClick={() => toggle(o)}>{o}</button>)}
       </div>
       {addNew && (
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <div className="tag-add" style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <input placeholder="Agregar otra opción…" value={nuevo} onChange={(e) => setNuevo(e.target.value)} style={{ maxWidth: 260 }} />
           <button type="button" className="btn ghost sm" onClick={() => { if (nuevo.trim()) { onChange([...value, nuevo.trim()]); setNuevo(""); } }}><Plus size={13} /> Agregar</button>
         </div>
