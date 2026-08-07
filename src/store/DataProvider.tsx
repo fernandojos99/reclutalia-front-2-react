@@ -7,6 +7,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { vacanteService } from "../services/vacanteService";
 import { pipelineService, type EntrevistaPayload, type MedicoPayload } from "../services/pipelineService";
+import { entrevistaExtraService } from "../services/entrevistaExtraService";
 import { candidatoService } from "../services/candidatoService";
 import { formadorService } from "../services/formadorService";
 import { notificacionService } from "../services/notificacionService";
@@ -45,6 +46,13 @@ interface Actions {
   confirmarSlot: (vacId: string, cid: number, slot: string) => Promise<Vacante>;
   registrarEntrevista: (vacId: string, cid: number, datos: EntrevistaPayload) => Promise<Vacante>;
   seleccionar: (vacId: string, cid: number) => Promise<Vacante>;
+  enviarMensajeLiberacion: (vacId: string, cid: number, mensaje: string) => Promise<Vacante>;
+  // Entrevistas adicionales pedidas a otros formadores.
+  solicitarEntrevistaExtra: (vacId: string, cid: number, formadorId: string) => Promise<Vacante>;
+  cancelarEntrevistaExtra: (vacId: string, cid: number, formadorId: string) => Promise<Vacante>;
+  enviarSlotsExtra: (vacId: string, cid: number, fid: string, slots: string[], modalidad: string) => Promise<Vacante>;
+  confirmarSlotExtra: (vacId: string, cid: number, fid: string, slot: string) => Promise<Vacante>;
+  registrarEntrevistaExtra: (vacId: string, cid: number, fid: string, datos: EntrevistaPayload) => Promise<Vacante>;
   agendarMedico: (vacId: string, cid: number, datos: MedicoPayload) => Promise<Vacante>;
   validarMedico: (vacId: string, cid: number) => Promise<Vacante>;
   recordarDocs: (vacId: string, cid: number) => Promise<Vacante>;
@@ -146,6 +154,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     confirmarSlot: (id, cid, s) => runVac(() => pipelineService.confirmarSlot(id, cid, s)),
     registrarEntrevista: (id, cid, d) => runVac(() => pipelineService.registrarEntrevista(id, cid, d)),
     seleccionar: (id, cid) => runVac(() => pipelineService.seleccionar(id, cid)),
+    enviarMensajeLiberacion: (id, cid, m) => runVac(() => pipelineService.enviarMensajeLiberacion(id, cid, m)),
+    solicitarEntrevistaExtra: (id, cid, fid) => runVac(() => entrevistaExtraService.solicitar(id, cid, fid)),
+    cancelarEntrevistaExtra: (id, cid, fid) => runVac(() => entrevistaExtraService.cancelar(id, cid, fid)),
+    enviarSlotsExtra: (id, cid, fid, slots, mod) => runVac(() => entrevistaExtraService.enviarSlots(id, cid, fid, slots, mod)),
+    confirmarSlotExtra: (id, cid, fid, slot) => runVac(() => entrevistaExtraService.confirmarSlot(id, cid, fid, slot)),
+    registrarEntrevistaExtra: (id, cid, fid, d) => runVac(() => entrevistaExtraService.registrar(id, cid, fid, d)),
     agendarMedico: (id, cid, d) => runVac(() => pipelineService.agendarMedico(id, cid, d)),
     validarMedico: (id, cid) => runVac(() => pipelineService.validarMedico(id, cid)),
     recordarDocs: (id, cid) => runVac(() => pipelineService.recordarDocs(id, cid)),

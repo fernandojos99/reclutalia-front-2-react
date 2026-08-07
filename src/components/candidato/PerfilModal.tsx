@@ -2,15 +2,16 @@
 import { useState, type ReactNode } from "react";
 import {
   CheckCircle2, Building2, MapPin, Briefcase, GraduationCap, Heart, FolderPlus,
-  Archive, ArchiveRestore, Download, Share2,
+  Archive, ArchiveRestore, Download, Share2, MessageSquare,
 } from "lucide-react";
+import { ComentariosCandidato } from "./ComentariosCandidato";
 import { Modal } from "../common/Modal";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
 import { MatchRing } from "../common/MatchRing";
 import { money, rangoFechas } from "../../utils/format";
 import { descargarCV } from "../../utils/descargarCV";
-import type { Candidato, Requisito } from "../../types/models/domain";
+import type { Candidato, Formador, Requisito } from "../../types/models/domain";
 
 interface Props {
   cand: Candidato;
@@ -25,14 +26,31 @@ interface Props {
   onCat?: () => void;
   onArchivar?: () => void;
   onCompartir?: () => void;
+  /** Alimenta la vista de "Comentarios del candidato". */
+  formadores?: Formador[];
+  formadorActual?: string;
 }
 
 function MC({ e, hit, base }: { e: string; hit?: boolean; base?: string }) {
   return <span className={"chip " + (hit ? "ok" : base || "")}>{hit && <CheckCircle2 size={11} />}{e}</span>;
 }
 
-export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, archivado, onFav, onCat, onArchivar, onCompartir }: Props) {
+export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, archivado, onFav, onCat, onArchivar, onCompartir, formadores, formadorActual }: Props) {
+  const [verComentarios, setVerComentarios] = useState(false);
   const espHit = (e: string) => !!req && req.espRequeridas.includes(e);
+
+  // Vista alterna del mismo popup: se sustituye el perfil por las notas de otros formadores.
+  if (verComentarios) {
+    return (
+      <Modal onClose={onClose} wide>
+        <h3 style={{ marginBottom: 4 }}>Comentarios sobre {cand.nombre}</h3>
+        <ComentariosCandidato cand={cand} formadores={formadores ?? []} excluir={formadorActual} />
+        <div style={{ marginTop: 20 }}>
+          <button className="btn ghost" onClick={() => setVerComentarios(false)}>← Volver al perfil</button>
+        </div>
+      </Modal>
+    );
+  }
   const hardHit = (e: string) => !!req && req.hardSkills.includes(e);
   const softHit = (e: string) => !!req && req.softSkills.includes(e);
   const [verExp, setVerExp] = useState(false);
@@ -110,11 +128,14 @@ export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, arch
         </div>
       )}
 
-      {extra && (
-        <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
-          {extra}
-        </div>
-      )}
+      <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+        {formadores && formadores.length > 0 && (
+          <button className="btn ghost" onClick={() => setVerComentarios(true)}>
+            <MessageSquare size={15} /> Comentarios del candidato
+          </button>
+        )}
+        {extra}
+      </div>
     </Modal>
   );
 }

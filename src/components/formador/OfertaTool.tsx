@@ -1,6 +1,12 @@
-/** Carta oferta: calculadora de compensación (sueldo fijo por tabulador) + fecha e ubicación. */
+/**
+ * Carta oferta: calculadora de compensación (sueldo fijo por tabulador) + fecha y ubicación.
+ *
+ * Con un candidato INTERNO se compara además contra lo que gana hoy: un aumento por encima del
+ * 30 % exige autorización de administración antes de poder enviar la oferta.
+ */
 import { useState } from "react";
-import { Send, Calculator } from "lucide-react";
+import { Send, Calculator, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Modal } from "../common/Modal";
 import { money, fechasQuincena } from "../../utils/format";
 import { DIRECCION_CORP } from "../../constants/catalogos";
 import type { Candidato, Vacante } from "../../types/models/domain";
@@ -13,9 +19,26 @@ interface Props {
 
 const pct = (t: string) => <span style={{ color: "var(--gray)", fontWeight: 400, fontSize: 11.5 }}>{t}</span>;
 
+/** Umbral de aumento a partir del cual hace falta autorización. */
+const TOPE = 0.30;
+
 export function OfertaTool({ v, cand, onSend }: Props) {
   // Sueldo fijo (tabulador). Desglose determinista para la calculadora de compensación.
-  const sueldo = v.req.sueldo ?? Math.round((v.req.salarioMin + v.req.salarioMax) / 2 / 500) * 500;
+  const sueldoTabulador = v.req.sueldo ?? Math.round((v.req.salarioMin + v.req.salarioMax) / 2 / 500) * 500;
+
+  const sueldoActual = cand.tipo === "interno" ? cand.sueldoActual ?? 0 : 0;
+  const [topado, setTopado] = useState(false);
+  const [autorizado, setAutorizado] = useState(false);
+  const [pidiendo, setPidiendo] = useState(false);
+
+  // Al topar se redondea hacia ABAJO, para no volver a cruzar el 30 % por el redondeo.
+  const sueldoTope = Math.floor((sueldoActual * (1 + TOPE)) / 100) * 100;
+  const sueldo = topado ? sueldoTope : sueldoTabulador;
+
+  const aumento = sueldoActual > 0 ? (sueldo - sueldoActual) / sueldoActual : 0;
+  const excede = sueldoActual > 0 && aumento > TOPE;
+  const bloqueado = excede && !autorizado;
+
   const bono = Math.round(sueldo * 0.18);
   const prestaciones = Math.round(sueldo * 0.12);
   const total = sueldo + bono + prestaciones;
@@ -41,6 +64,25 @@ export function OfertaTool({ v, cand, onSend }: Props) {
             <b style={{ fontSize: 14 }}>Paquete de compensación</b>
           </div>
           <div style={{ marginBottom: 10 }}><span className="chip gold">Salario fijo · tabulador autorizado</span></div>
+
+          {/* Solo internos: ya son empleados, así que hay un sueldo previo contra el que comparar. */}
+          {sueldoActual > 0 && (
+            <>
+              <div className="comp-row"><span>Sueldo actual</span><b>{money(sueldoActual)}</b></div>
+              <div className="comp-row">
+                <span>Aumento</span>
+                <b style={{ color: "var(--ok)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  +{Math.round(aumento * 100)}%
+                  {excede && !autorizado && (
+                    <AlertTriangle size={15} style={{ color: "var(--bad)" }}
+                      aria-label="Supera el 30 %: requiere autorización" />
+                  )}
+                  {autorizado && <ShieldCheck size={15} style={{ color: "var(--ok)" }} aria-label="Autorizado" />}
+                </b>
+              </div>
+            </>
+          )}
+
           <div className="comp-row"><span>Sueldo base</span><b>{money(sueldo)}</b></div>
           <div className="comp-row"><span>Bono variable est. {pct("(≈18%)")}</span><b>{money(bono)}</b></div>
           <div className="comp-row"><span>Prestaciones grupo {pct("(≈12%)")}</span><b>{money(prestaciones)}</b></div>
@@ -64,9 +106,49 @@ export function OfertaTool({ v, cand, onSend }: Props) {
           <textarea rows={2} value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Dirección completa de presentación el primer día…" />
           <div className="help">Se incluirá en la carta oferta y en la pantalla de bienvenida (con enlace a Google Maps).</div>
         </div>
-        <button className="btn gold" disabled={!ubicacion.trim() || !fechaFinal} onClick={() => onSend(sueldo, fechaFinal, ubicacion.trim())}>
-          <Send size={15} /> Enviar carta oferta a {cand.nombre.split(" ")[0]}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button className="btn gold" disabled={!ubicacion.trim() || !fechaFinal || bloqueado}
+            title={bloqueado ? "Requiere autorización: el aumento supera el 30 %" : undefined}
+            onClick={() => onSend(sueldo, fechaFinal, ubicacion.trim())}>
+            <Send size={15} /> Enviar carta oferta a {cand.nombre.split(" ")[0]}
+          </button>
+          {bloqueado && (
+            <button className="btn ghost" onClick={() => setPidiendo(true)}>
+              <AlertTriangle size={15} /> Solicitar autorización
+            </button>
+          )}
+        </div>
+        {bloqueado && (
+          <p className="help" style={{ marginTop: 8 }}>
+            El aumento supera el 30 % permitido: solicita la autorización o topa el aumento para
+            poder enviar la carta oferta.
+          </p>
+        )}
+        {autorizado && (
+          <p className="help" style={{ marginTop: 8, color: "var(--ok)" }}>
+            Aumento autorizado por administración. Ya puedes enviar la carta oferta.
+          </p>
+        )}
+
+        {pidiendo && (
+          <Modal onClose={() => setPidiendo(false)}>
+            <h3 style={{ marginBottom: 4 }}>Autorización de aumento</h3>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+              Estás por ofrecer <b>{money(sueldo)}</b> a {cand.nombre.split(" ")[0]}, que gana hoy{" "}
+              <b>{money(sueldoActual)}</b>: un aumento del <b>{Math.round(aumento * 100)}%</b>.
+              Para superar el 30 % deberás esperar la autorización de tu administración. También
+              puedes topar el aumento al 30 % y enviar la carta oferta de inmediato.
+            </p>
+            <div className="paso-acciones">
+              <button className="btn gold" onClick={() => { setAutorizado(true); setPidiendo(false); }}>
+                <ShieldCheck size={15} /> Continuar con la autorización
+              </button>
+              <button className="btn ghost" onClick={() => { setTopado(true); setAutorizado(false); setPidiendo(false); }}>
+                Topar aumento a 30% ({money(sueldoTope)})
+              </button>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );

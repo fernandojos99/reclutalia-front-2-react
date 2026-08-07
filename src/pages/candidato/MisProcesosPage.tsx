@@ -21,6 +21,8 @@ import {
   VideoIAModal, MedicoAgendar, PostulacionForm, RechazarInvitacionModal,
 } from "../../components/candidato/procesoModals";
 import { PerfilEditor } from "../../components/candidato/PerfilEditor";
+import { OfertaInterna } from "../../components/candidato/OfertaInterna";
+import { MensajeLiberacion } from "../../components/candidato/MensajeLiberacion";
 import { CapacitacionModulo } from "../../components/common/CapacitacionModulo";
 import {
   mapsUrl, psicoVigente, psicoVigenteHasta, abrirAperturaCuenta, folioCita,
@@ -39,7 +41,7 @@ const esCerrado = (est: string) => ["contratado", "descartado", "filtrado", "rec
 interface FiltroLocal { autoriza: boolean; }
 
 export function MisProcesosPage() {
-  const { vacantes, candidatos, actions } = useData();
+  const { vacantes, candidatos, formadores, actions } = useData();
   const { candId, toast } = useDemo();
   const navigate = useNavigate();
   const cand = candidatos.find((c) => c.id === candId);
@@ -226,9 +228,22 @@ export function MisProcesosPage() {
                   <b>🎉 ¡Felicidades, {cand.nombre.split(" ")[0]}! Fuiste seleccionado(a).</b>
                   <p style={{ fontSize: 12.5, marginTop: 4 }}>Siguiente paso: sube tu documentación para preparar tu contratación. <b>Solo PDF · máximo 1 MB por archivo.</b></p>
                 </div>
-                {CONTRATO_KEYS.map(([k, l]) => (
-                  <UploadPDF key={k} label={l} value={p.docsContrato[k] ?? null} onDone={(n) => { void actions.setDocContrato(v.id, cand.id, k, n); }} />
-                ))}
+                {CONTRATO_KEYS.map(([k, l]) => {
+                  // El interno ya es empleado: sus documentos están en expediente y puede
+                  // reutilizarlos o actualizarlos. El CURP se excluye: no cambia nunca.
+                  const enPerfil = (cand.docsPerfil as unknown as Record<string, string | null>)[k];
+                  const delExpediente = cand.tipo === "interno" && k !== "curp"
+                    ? enPerfil ?? `${l}.pdf`
+                    : null;
+                  return (
+                    <UploadPDF key={k} label={l} value={p.docsContrato[k] ?? null}
+                      actual={delExpediente}
+                      onUsarActual={delExpediente
+                        ? () => { void actions.setDocContrato(v.id, cand.id, k, delExpediente); }
+                        : undefined}
+                      onDone={(n) => { void actions.setDocContrato(v.id, cand.id, k, n); }} />
+                  );
+                })}
 
 
                 {v.req.examenMedico && (
@@ -270,7 +285,12 @@ export function MisProcesosPage() {
               </>
             )}
 
-            {p.estado === "oferta_enviada" && (
+            {/* El interno ve una carta distinta: compara contra lo que deja atrás. */}
+            {p.estado === "oferta_enviada" && cand.tipo === "interno" && (
+              <OfertaInterna cand={cand} v={v} p={p} onAceptar={() => setConfirmOferta(v)} />
+            )}
+
+            {p.estado === "oferta_enviada" && cand.tipo === "externo" && (
               <div className="card" style={{ borderColor: "var(--gold)" }}>
                 <h3 style={{ fontSize: 15, marginBottom: 8 }}><FileSignature size={16} style={{ verticalAlign: -3 }} /> Tu carta oferta</h3>
                 <div style={{ marginBottom: 12 }}>
@@ -288,7 +308,19 @@ export function MisProcesosPage() {
               </div>
             )}
 
-            {p.estado === "oferta_aceptada" && (
+            {/* El interno ya cobra en la empresa: no hay cuenta que abrir, sino un aviso que dar. */}
+            {p.estado === "oferta_aceptada" && cand.tipo === "interno" && (
+              <MensajeLiberacion
+                cand={cand} v={v} p={p}
+                formadorActual={formadores.find((f) => f.id === cand.formadorId)?.nombre}
+                onEnviar={(msg) => {
+                  void actions.enviarMensajeLiberacion(v.id, cand.id, msg);
+                  toast("Mensaje enviado a tu formador actual");
+                }}
+              />
+            )}
+
+            {p.estado === "oferta_aceptada" && cand.tipo === "externo" && (
               <div className="card" style={{ borderColor: "var(--gold)" }}>
                 <h3 style={{ fontSize: 15, marginBottom: 4 }}><Landmark size={16} style={{ verticalAlign: -3 }} /> Apertura de tu cuenta de nómina</h3>
                 <p className="help" style={{ marginBottom: 12 }}>Aceptaste la oferta. Penúltimo paso: abre tu cuenta de nómina desde el enlace o el QR; se generará automáticamente para formalizar tu contrato.</p>

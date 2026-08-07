@@ -421,6 +421,9 @@ img.avatar{object-fit:cover;}
 .plant-viables:hover{background:#E4E7FF;}
 .plant-viables.vacio{border-color:var(--line);background:var(--bg);color:var(--gray);cursor:default;}
 .plant-viables.cubierta{border-style:solid;border-color:#BBDFC6;background:var(--ok-soft);color:var(--ok);cursor:default;}
+/* Proceso en marcha: el color principal, para que destaque frente a las posiciones sin empezar. */
+.plant-viables.activo{border-style:solid;border-color:#F2D089;background:var(--gold-soft);color:var(--gold-dark);}
+.plant-viables.activo:hover{background:#F7E4B8;}
 
 /* ── Fila de concepto + tooltip informativo (sustituye al desplegable) ── */
 .fila-info{display:flex;align-items:center;gap:9px;padding:9px 13px;border:1px solid var(--line);border-radius:var(--r-2);background:var(--paper);font-size:13.5px;color:var(--ink);}

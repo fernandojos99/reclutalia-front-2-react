@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Bell, LayoutGrid, Plus, Users, Briefcase, Search, X, Radar, RotateCcw, Trash2, AlertTriangle } from "lucide-react";
+import { Home, Bell, CalendarCheck, LayoutGrid, Plus, Users, Briefcase, Search, X, Radar, RotateCcw, Trash2, AlertTriangle } from "lucide-react";
 import { useDemo, type Rol } from "../../contexts/DemoContext";
 import { useData } from "../../store/DataProvider";
 import { resetSessionId } from "../../services/agenteService";
@@ -17,6 +17,8 @@ interface SidebarProps {
   formadores: Formador[];
   candidatos: Candidato[];
   noLeidas: number;
+  /** Entrevistas que le pidieron a este formador y aún no cierra. */
+  entrevistasPendientes?: number;
   /** En móvil el sidebar es un drawer: `open` lo muestra, `onClose` lo cierra. */
   open?: boolean;
   onClose?: () => void;
@@ -25,6 +27,7 @@ interface SidebarProps {
 const navPorRol: Record<Rol, { to: string; icon: typeof Home; label: string; end?: boolean }[]> = {
   formador: [
     { to: "/formador", icon: Home, label: "Mis vacantes", end: true },
+    { to: "/formador/entrevistas", icon: CalendarCheck, label: "Entrevistas asignadas" },
     { to: "/formador/notificaciones", icon: Bell, label: "Notificaciones" },
   ],
   admin: [
@@ -40,7 +43,7 @@ const navPorRol: Record<Rol, { to: string; icon: typeof Home; label: string; end
   ],
 };
 
-export function Sidebar({ formadores, candidatos, noLeidas, open = false, onClose }: SidebarProps) {
+export function Sidebar({ formadores, candidatos, noLeidas, entrevistasPendientes = 0, open = false, onClose }: SidebarProps) {
   const { rol, setRol, formadorId, setFormadorId, candId, setCandId, tema, setTema, toast } = useDemo();
   const { actions, reload } = useData();
   const location = useLocation();
@@ -119,6 +122,9 @@ export function Sidebar({ formadores, candidatos, noLeidas, open = false, onClos
           className={({ isActive }) => "nav-item" + (isActive ? " on" : "")}>
           <Icon size={16} />
           {label}
+          {label === "Entrevistas asignadas" && entrevistasPendientes > 0 && (
+            <span className="chip gold" style={{ marginLeft: "auto" }}>{entrevistasPendientes}</span>
+          )}
           {label === "Notificaciones" && noLeidas > 0 && (
             <span className="chip gold" style={{ marginLeft: "auto" }}>{noLeidas}</span>
           )}

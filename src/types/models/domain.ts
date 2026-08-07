@@ -82,6 +82,25 @@ export interface Entrevista {
   fecha: string;
 }
 
+/** Estado de una entrevista que el formador principal pidió a otro formador. */
+export type EstadoEntrevistaExtra = "notificado" | "agendada" | "realizada";
+
+/**
+ * Entrevista adicional solicitada a otro formador para el mismo candidato.
+ * Replica el ciclo de agendado del formador principal (slots → confirmación → registro): son
+ * procesos paralelos e independientes, uno por entrevistador.
+ */
+export interface EntrevistaExtra {
+  formadorId: string;
+  estado: EstadoEntrevistaExtra;
+  solicitada: string;
+  slots?: string[];
+  slotElegido?: string;
+  modalidadEnt?: string;
+  teams?: string;
+  entrevista?: Entrevista;
+}
+
 export interface Oferta {
   monto: number;
   fecha: string;
@@ -112,9 +131,13 @@ export interface PipelineEntry {
   modalidadEnt?: string;
   teams?: string;
   entrevista?: Entrevista;
+  /** Entrevistas pedidas a otros formadores, además de la del formador principal. */
+  entrevistasExtra?: EntrevistaExtra[];
   oferta?: Oferta;
   medico?: Medico;
   cuentaBanco?: string;
+  /** Solo internos: mensaje de despedida que el candidato deja a su formador actual. */
+  mensajeLiberacion?: string;
   numEmpleado?: string;
   motivoRechazo?: string;
   /** Módulos de inducción/capacitación completados por el candidato (visibles para el formador). */
@@ -192,6 +215,12 @@ export interface Candidato {
   ciudad: string;
   modalidad: string;
   salario: number;
+  /** Solo internos: lo que gana HOY. `salario` es su expectativa, no lo que percibe. */
+  sueldoActual?: number;
+  /** Solo internos: departamento en el que está adscrito hoy. */
+  departamento?: string;
+  /** Solo internos: formador del que depende hoy; es a quien se avisa si se va a otro puesto. */
+  formadorId?: string;
   esp: string[];
   hard: string[];
   soft: string[];

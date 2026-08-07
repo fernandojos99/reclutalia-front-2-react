@@ -51,6 +51,8 @@ export const pipelineService = {
     apiClient.post<Vacante>(`${base(v, cid)}/recordar-docs`),
   setDocContrato: (v: string, cid: number, key: string, value: string) =>
     apiClient.post<Vacante>(`${base(v, cid)}/doc-contrato`, { key, value }),
+  enviarMensajeLiberacion: (v: string, cid: number, mensaje: string) =>
+    apiClient.post<Vacante>(`${base(v, cid)}/mensaje-liberacion`, { mensaje }),
   setCuentaBanco: (v: string, cid: number, cuenta: string) =>
     apiClient.post<Vacante>(`${base(v, cid)}/cuenta`, { cuenta }),
   solicitarCambioFecha: (v: string, cid: number, fecha: string) =>

@@ -3,9 +3,9 @@
  * Usa useData() (db + actions) en lugar de `db`/`run(ACT...)`, y react-router para la navegación.
  */
 import { useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import {
-  MapPin, Clock, ShieldCheck, CheckCircle2, Sparkles, Filter, Users, Plus,
+  MapPin, Clock, ShieldCheck, CheckCircle2, Sparkles, Filter, Users, Plus, FileText,
   Archive, ArchiveRestore, Heart, FolderPlus, Share2, User, Download, Send, Star, Video,
   Calendar, CalendarCheck, Link2, ClipboardList, Bell, PartyPopper, Zap, AlertCircle, FileSignature,
   ChevronLeft, ChevronRight,
@@ -18,10 +18,11 @@ import { MatchRing } from "../../components/common/MatchRing";
 import { EstadoChip } from "../../components/common/EstadoChip";
 import { FasesBar } from "../../components/common/FasesBar";
 import { PerfilModal } from "../../components/candidato/PerfilModal";
-import { VistaDescriptivo } from "../../components/formador/VistaDescriptivo";
+
 import { InvitarModal } from "../../components/formador/InvitarModal";
 import { AgendaModal } from "../../components/formador/AgendaModal";
 import { EntrevistaModal, VerEntrevistaModal, evalEmoji, evalLabel } from "../../components/formador/EntrevistaModal";
+import { EntrevistasExtra } from "../../components/formador/EntrevistasExtra";
 import { VideoIAResumenModal } from "../../components/formador/VideoIAResumenModal";
 import { OfertaTool } from "../../components/formador/OfertaTool";
 import { Celebracion } from "../../components/formador/Celebracion";
@@ -51,6 +52,7 @@ export function VacanteDetailPage() {
   const [searchParams] = useSearchParams(); // `?tab=1` permite enlazar directo al Marketplace
   const { vacantes, candidatos, formadores, actions } = useData();
   const { toast } = useDemo();
+  const navigate = useNavigate();
   const v = vacantes.find((x) => x.id === vacId);
 
   const [tab, setTab] = useState<number | null>(null);
@@ -101,6 +103,14 @@ export function VacanteDetailPage() {
     .sort((a, b) => (b.p.matchIA || b.p.match) - (a.p.matchIA || a.p.match));
   const agendados = pipe.filter((x) => x.p.estado === "agendado");
   const entrevistados = pipe.filter((x) => ["entrevistado", "seleccionado", "docs_completos", "oferta_enviada", "oferta_aceptada", "contratado"].includes(x.p.estado));
+  /**
+   * Entrevistas adicionales solicitadas que aún no se realizan, en toda la vacante.
+   * Hasta que sean cero no se elige finalista: la gracia de pedir más opiniones es tenerlas todas.
+   */
+  const extrasPendientes = pipe.reduce(
+    (n, { p }) => n + (p.entrevistasExtra ?? []).filter((e) => e.estado !== "realizada").length,
+    0,
+  );
   const entrevistasHist = pipe.filter((x) => x.p.entrevista && ["entrevistado", "seleccionado", "docs_completos", "oferta_enviada", "oferta_aceptada", "contratado", "descartado"].includes(x.p.estado));
   const seleccionado = pipe.find((x) => ["seleccionado", "docs_completos", "oferta_enviada", "oferta_aceptada", "contratado"].includes(x.p.estado));
   const contratado = pipe.find((x) => x.p.estado === "contratado");
@@ -116,9 +126,12 @@ export function VacanteDetailPage() {
   /** Mini-chips de requisitos/filtros aprobados por tipo de candidato (4.1). Jorge Luis (id 2): ⚠ en buró. */
   const FiltroChecks = ({ c }: { c: Candidato }) => {
     const buroWarn = c.id === 2;
+    // "Línea de crédito" y "Pruebas universales" son validaciones de externos: un interno ya las
+    // tiene resueltas por ser empleado.
     const items: [string, boolean][] = c.tipo === "interno"
       ? [["Comportamiento ejemplar", false], ["Antigüedad", false], ["Desempeño", false]]
-      : [["PLD", false], ["Listas azules", false], ["Círculo de crédito", buroWarn], ["Reingreso", false]];
+      : [["PLD", false], ["Listas azules", false], ["Círculo de crédito", buroWarn], ["Reingreso", false],
+         ["Línea de crédito", false], ["Pruebas universales", false]];
     return (
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
         {items.map(([l, warn]) => (
@@ -209,9 +222,26 @@ export function VacanteDetailPage() {
 
       <div style={{ margin: "0 0 16px" }}><FasesBar v={v} activo={tabActual} onSub={setTabActual} /></div>
 
+      {/*
+        El descriptivo de solo lectura se sustituye por el asistente de edición y publicación, que
+        es donde de verdad se trabaja la vacante. Publicada, se entra viendo el anuncio actual con
+        la opción de editarlo; sin publicar, por la pestaña de perfil.
+      */}
       {tabActual === 0 && (
-        <VistaDescriptivo v={v} onAprobar={() => setBuscando(true)}
-          onSolicitarEdicion={(req, resumen) => { actions.solicitarEdicion(v.id, req, resumen).then(() => toast("Cambios enviados al administrador para su confirmación")).catch((e) => toast("No se pudo enviar: " + (e as Error).message)); }} />
+        <div className="card" style={{ textAlign: "center", padding: 34 }}>
+          <FileText size={26} color="var(--gold-dark)" style={{ marginBottom: 8 }} />
+          <h3 style={{ fontSize: 16, marginBottom: 6 }}>
+            {abierta ? "Tu publicación está activa" : "Revisa y publica esta vacante"}
+          </h3>
+          <p className="help" style={{ maxWidth: 460, margin: "0 auto 16px" }}>
+            {abierta
+              ? "Puedes ver cómo se ve la publicación actual y editarla; al actualizarla se recalcula el Marketplace si cambiaron las habilidades."
+              : "Verifica el perfil, la compensación, los beneficios y las herramientas para publicarla."}
+          </p>
+          <button className="btn gold" onClick={() => navigate(`/formador/vacante/${v.id}/revisar`)}>
+            {abierta ? "Ver y editar la publicación" : "Ir al asistente de la vacante"}
+          </button>
+        </div>
       )}
 
       {tabActual === 1 && abierta && (
@@ -424,6 +454,25 @@ export function VacanteDetailPage() {
               </div>
             </div>
           ))}
+
+          {/* Entrevistas que este formador puede pedir a otros compañeros para el mismo candidato. */}
+          {(agendados.length > 0 || entrevistasHist.length > 0) && (
+            <EntrevistasExtra
+              v={v}
+              filas={[...agendados, ...entrevistasHist].map(({ c, p }) => ({ c, p }))}
+              formadores={formadores}
+              onSolicitar={(cid, fid) => {
+                void actions.solicitarEntrevistaExtra(v.id, cid, fid)
+                  .then(() => toast("Entrevista solicitada · el formador fue notificado"))
+                  .catch((e: Error) => toast(e.message));
+              }}
+              onCancelar={(cid, fid) => {
+                void actions.cancelarEntrevistaExtra(v.id, cid, fid)
+                  .then(() => toast("Entrevista cancelada"))
+                  .catch((e: Error) => toast(e.message));
+              }}
+            />
+          )}
         </div>
       )}
 
@@ -439,7 +488,12 @@ export function VacanteDetailPage() {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button className="btn ghost sm" onClick={() => setPerfil({ c, match: p.matchFinal ?? p.match })}><User size={13} /> Ver perfil</button>
                 <button className="btn ghost sm" onClick={() => setVerEnt({ c, p })}><Video size={13} /> Ver entrevista</button>
-                <button className="btn gold" onClick={() => setConfirmSel({ cid, c })}><CheckCircle2 size={15} /> Seleccionar como candidato ideal</button>
+                {/* No se elige finalista mientras quede alguna entrevista solicitada sin realizar. */}
+                <button className="btn gold" disabled={extrasPendientes > 0}
+                  title={extrasPendientes > 0
+                    ? `Faltan ${extrasPendientes} entrevista(s) adicionales por realizar`
+                    : undefined}
+                  onClick={() => setConfirmSel({ cid, c })}><CheckCircle2 size={15} /> Seleccionar como candidato ideal</button>
               </div>
             </div>
           ))}
@@ -565,6 +619,7 @@ export function VacanteDetailPage() {
         onConfirmar={(multi) => { void actions.solicitarMas(v.id, multi); setSolicitar(false); toast("Solicitud enviada · recibirás candidatos en los próximos días"); }}
         onClose={() => setSolicitar(false)} />}
       {perfil && <PerfilModal cand={perfil.c} match={perfil.match} req={v.req} onClose={() => setPerfil(null)}
+        formadores={formadores} formadorActual={v.formadorId}
         fav={favs.includes(perfil.c.id)} enCat={enCategoria(perfil.c.id)} archivado={archivados.includes(perfil.c.id)}
         onFav={() => void actions.toggleFavCand(v.formadorId, perfil.c.id)}
         onCat={() => setCatCand(perfil.c)}

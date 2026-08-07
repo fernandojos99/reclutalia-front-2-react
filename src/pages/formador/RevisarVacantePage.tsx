@@ -119,7 +119,23 @@ export function RevisarVacantePage() {
   };
 
   const publicar = async () => {
-    if (publicada) { navigate(`/formador/vacante/${v.id}?tab=1`); return; }
+    // Ya publicada: se guarda la actualización y se vuelve al Marketplace, que se rearma solo si
+    // cambiaron las habilidades (el ranking depende de ellas).
+    if (publicada) {
+      if (JSON.stringify(draft) !== JSON.stringify(v.req)) {
+        setPublicando(true);
+        try {
+          await actions.editarVacante(v.id, draft);
+          toast("Publicación actualizada · se recalculó el Marketplace");
+        } catch (e) {
+          toast("No se pudo actualizar: " + (e as Error).message);
+          setPublicando(false);
+          return;
+        }
+      }
+      navigate(`/formador/vacante/${v.id}?tab=1`);
+      return;
+    }
     setPublicando(true);
     try {
       if (JSON.stringify(draft) !== JSON.stringify(v.req)) await actions.editarVacante(v.id, draft);

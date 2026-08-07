@@ -16,8 +16,14 @@ import { matchScore } from "../../utils/match";
 import { fotoDe, numeroEmpleado } from "../../constants/personas";
 import type { Candidato, Formador, Vacante } from "../../types/models/domain";
 
-/** Estados del pipeline en los que la posición ya se considera ocupada por esa persona. */
-const OCUPADA = ["seleccionado", "docs_completos", "oferta_enviada", "oferta_aceptada", "contratado"];
+/**
+ * Estados en los que la posición ya se considera CUBIERTA.
+ *
+ * Solo `contratado`: mientras la contratación siga en curso (seleccionado, documentos, oferta) la
+ * posición todavía puede caerse, así que la tarjeta debe seguir invitando a continuar el proceso
+ * y no adelantar el nombre ni la foto de alguien que aún no ha firmado.
+ */
+const OCUPADA = ["contratado"];
 
 /** Umbral del pool en el backend (`buildPool`): un candidato es viable a partir de 28. */
 const MATCH_MIN = 28;
@@ -95,6 +101,9 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
         {vacantes.map((v) => {
           const persona = ocupante(v);
           const { n, estimado } = persona ? { n: 0, estimado: false } : viables(v);
+          // Hay alguien elegido pero la contratación no ha terminado: ni disponible ni cubierta.
+          const enProceso = !persona && Object.values(v.pipeline || {}).some((x) =>
+            ["seleccionado", "docs_completos", "oferta_enviada", "oferta_aceptada"].includes(x.estado));
           // La pausa solo tiñe posiciones sin cubrir: una ya ocupada no está reclutando.
           const pausada = !persona && v.req.pausada;
           return (
@@ -117,7 +126,9 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
                     </>
                   ) : (
                     <>
-                      {pausada ? <Chip icon={PauseCircle}>Pausada</Chip> : <Chip tone="gold">Disponible</Chip>}
+                      {pausada ? <Chip icon={PauseCircle}>Pausada</Chip>
+                        : enProceso ? <Chip tone="ai">En proceso</Chip>
+                          : <Chip tone="gold">Disponible</Chip>}
                       {/* Etiqueta siempre visible: la acción de la tarjeta no debe depender del hover. */}
                       <span className="plant-ajustar">Ajustar perfil <ChevronRight size={14} /></span>
                     </>
@@ -137,7 +148,7 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
                 ) : n > 0 ? (
                   <button
                     type="button"
-                    className="plant-viables"
+                    className={"plant-viables" + (enProceso ? " activo" : "")}
                     title={estimado
                       ? "Estimación sobre el marketplace; el definitivo se arma al publicar la vacante"
                       : "Ir a la etapa actual del proceso"}

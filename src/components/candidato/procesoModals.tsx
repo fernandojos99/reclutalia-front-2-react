@@ -1,15 +1,22 @@
 /** Modales/piezas del proceso del candidato (portados de App.jsx). */
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Video, Sparkles, Bot, ChevronRight, CheckCircle2, Search, CalendarCheck, AlertCircle, Send, XCircle,
+  Video, Sparkles, Bot, ChevronRight, CheckCircle2, Search, CalendarCheck, AlertCircle, Send, XCircle, Clock,
 } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { proximosDias } from "../../utils/format";
 import { SUCURSALES_MEDICAS } from "../../constants/catalogos";
 import type { Candidato, Vacante } from "../../types/models/domain";
 
+/** Minutos por pregunta. Al agotarse se avanza solo: la entrevista no se queda esperando. */
+const MIN_POR_PREGUNTA = 5;
+
+const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+
 export function VideoIAModal({ v, onDone, onClose }: { cand: Candidato; v: Vacante; onDone: () => void; onClose: () => void }) {
   const [paso, setPaso] = useState(0);
+  const [empezada, setEmpezada] = useState(false);
+  const [resta, setResta] = useState(MIN_POR_PREGUNTA * 60);
   const pregs = [
     "Preséntate brevemente: trayectoria, especialidad y lo que buscas en tu siguiente reto.",
     `Esta vacante requiere ${v.req.hardSkills.slice(0, 2).join(" y ")}. Cuéntame un proyecto donde los aplicaste.`,
@@ -17,11 +24,58 @@ export function VideoIAModal({ v, onDone, onClose }: { cand: Candidato; v: Vacan
     "Describe una situación difícil con un cliente o compañero y cómo la resolviste.",
     "¿Por qué te interesa esta posición y qué disponibilidad tienes?",
   ];
+
+  const siguiente = useCallback(() => {
+    setPaso((i) => {
+      if (i < pregs.length - 1) { setResta(MIN_POR_PREGUNTA * 60); return i + 1; }
+      onDone();
+      return i;
+    });
+  }, [pregs.length, onDone]);
+
+  // El contador se reinicia en CADA pregunta y, si llega a cero, pasa a la siguiente por su cuenta.
+  useEffect(() => {
+    if (!empezada) return;
+    const t = window.setInterval(() => {
+      setResta((s) => {
+        if (s <= 1) { siguiente(); return MIN_POR_PREGUNTA * 60; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, [empezada, paso, siguiente]);
+
+  // ── Pantalla previa de instrucciones ──
+  if (!empezada) {
+    return (
+      <Modal onClose={onClose} wide>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <Bot size={20} color="var(--ai)" />
+          <h3>Estás por comenzar una entrevista realizada por un agente virtual</h3>
+        </div>
+        <div className="rev-titulin" style={{ marginTop: 16 }}>Instrucciones</div>
+        <ul className="ofrece-lista" style={{ marginBottom: 20 }}>
+          <li><CheckCircle2 size={14} />Responde a un listado de preguntas basadas en tu perfil y el puesto al que estás aplicando.</li>
+          <li><CheckCircle2 size={14} />Tendrás {MIN_POR_PREGUNTA} minutos para responder cada pregunta.</li>
+          <li><CheckCircle2 size={14} />Responde de manera natural y con honestidad a cada pregunta.</li>
+          <li><CheckCircle2 size={14} />La entrevista se estará grabando y formará parte de tu aplicación.</li>
+          <li><CheckCircle2 size={14} />El agente virtual te indicará cuando la entrevista haya terminado.</li>
+        </ul>
+        <button className="btn gold" onClick={() => { setEmpezada(true); setResta(MIN_POR_PREGUNTA * 60); }}>
+          Comenzar <ChevronRight size={15} />
+        </button>
+      </Modal>
+    );
+  }
+
   return (
     <Modal onClose={onClose} wide>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
         <Video size={18} color="var(--ai)" /><h3>Video-entrevista con agente de IA</h3>
-        <span className="chip ai" style={{ marginLeft: "auto" }}><Sparkles size={11} /> Grabando (simulado)</span>
+        <span className={"chip" + (resta <= 60 ? " bad" : "")} style={{ marginLeft: "auto" }}>
+          <Clock size={11} /> {mmss(resta)}
+        </span>
+        <span className="chip ai"><Sparkles size={11} /> Grabando (simulado)</span>
       </div>
       <div style={{ background: "var(--ink)", borderRadius: 14, height: 170, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, marginBottom: 14 }}>
         <div style={{ width: 58, height: 58, borderRadius: 99, background: "var(--ai)", display: "flex", alignItems: "center", justifyContent: "center" }}><Bot size={28} color="#fff" /></div>
@@ -33,7 +87,7 @@ export function VideoIAModal({ v, onDone, onClose }: { cand: Candidato; v: Vacan
       </div>
       <div className="mini-pipe" style={{ margin: "12px 0" }}>{pregs.map((_, i) => <i key={i} className={i <= paso ? "f" : ""} />)}</div>
       {paso < pregs.length - 1
-        ? <button className="btn ai" onClick={() => setPaso(paso + 1)}>He respondido · siguiente pregunta <ChevronRight size={15} /></button>
+        ? <button className="btn ai" onClick={siguiente}>He respondido · siguiente pregunta <ChevronRight size={15} /></button>
         : <button className="btn gold" onClick={onDone}><CheckCircle2 size={15} /> Finalizar video-entrevista</button>}
     </Modal>
   );

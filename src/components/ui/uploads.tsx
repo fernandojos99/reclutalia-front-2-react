@@ -1,9 +1,32 @@
 /** Componentes de subida y captura (portados de App.jsx): UploadPDF, UploadFoto, TagPicker, TagInput. */
 import { useRef, useState } from "react";
-import { CheckCircle2, FileText, AlertCircle, Upload, User, Plus, X } from "lucide-react";
+import { CheckCircle2, FileText, AlertCircle, Upload, User, Plus, X, Eye } from "lucide-react";
 
-export function UploadPDF({ label, value, onDone, onDelete }: {
+/**
+ * Abre una vista simulada del documento en una pestaña nueva.
+ * Los archivos no se guardan: de `docsContrato` solo se conserva el NOMBRE, así que no hay PDF que
+ * servir. Se genera una página con los datos que sí tenemos.
+ */
+function verDocumentoSimulado(label: string, nombre: string): void {
+  const html = `<!doctype html><meta charset="utf-8"><title>${label}</title>
+<body style="font-family:system-ui;margin:0;display:flex;align-items:center;justify-content:center;height:100vh;background:#F3F1EA">
+<div style="background:#fff;padding:40px 48px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.12);max-width:520px;text-align:center">
+<div style="font-size:11px;letter-spacing:.08em;color:#8A8578;text-transform:uppercase">Documento en expediente</div>
+<h1 style="font-size:22px;margin:10px 0 6px">${label}</h1>
+<p style="color:#5B564C;font-size:14px;margin:0 0 18px">${nombre}</p>
+<p style="color:#8A8578;font-size:12.5px;line-height:1.6;margin:0">Vista simulada. En el prototipo los archivos no se almacenan, solo su nombre.</p>
+</div></body>`;
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+  window.open(url, "_blank", "noopener");
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+export function UploadPDF({ label, value, onDone, onDelete, actual, onUsarActual }: {
   label: string; value: string | null; onDone: (name: string) => void; onDelete?: () => void;
+  /** Documento que la persona ya tiene en su expediente (candidatos internos). */
+  actual?: string | null;
+  /** Reutilizar el del expediente en vez de subir uno nuevo. */
+  onUsarActual?: () => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [err, setErr] = useState("");
@@ -14,16 +37,28 @@ export function UploadPDF({ label, value, onDone, onDelete }: {
     if (f.size > 1024 * 1024) { setErr("El archivo supera el límite de 1 MB."); return; }
     setErr(""); onDone(f.name);
   };
+  // Con expediente previo y sin documento confirmado aún, se ofrece actualizarlo o reutilizarlo.
+  const conExpediente = !!actual && !value;
   return (
     <div className={"check-item" + (value ? " done" : "")}>
       {value ? <CheckCircle2 size={20} color="var(--ok)" /> : <FileText size={20} color="var(--gray)" />}
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 600, fontSize: 13 }}>{label}</div>
-        <div className="help">{value ? `Cargado: ${value}` : "PDF · máximo 1 MB"}</div>
+        <div className="help">
+          {value ? `Cargado: ${value}` : conExpediente ? `En tu expediente: ${actual}` : "PDF · máximo 1 MB"}
+        </div>
         {err && <div style={{ fontSize: 11.5, color: "var(--bad)", marginTop: 3 }}><AlertCircle size={11} style={{ verticalAlign: -1 }} /> {err}</div>}
       </div>
       <input type="file" accept="application/pdf" ref={ref} style={{ display: "none" }} onChange={pick} />
-      {!value && <button className="btn ghost sm" onClick={() => ref.current?.click()}><Upload size={13} /> Subir archivo</button>}
+      {conExpediente && (
+        <>
+          <button className="btn ghost sm" onClick={() => ref.current?.click()}><Upload size={13} /> Actualizar</button>
+          <button className="btn ghost sm" title="Ver el documento actual"
+            onClick={() => verDocumentoSimulado(label, actual!)}><Eye size={13} /></button>
+          {onUsarActual && <button className="btn ghost sm" onClick={onUsarActual}>Usar actual</button>}
+        </>
+      )}
+      {!value && !conExpediente && <button className="btn ghost sm" onClick={() => ref.current?.click()}><Upload size={13} /> Subir archivo</button>}
       {value && <button className="btn ghost sm" onClick={() => ref.current?.click()}>Reemplazar</button>}
       {value && onDelete && <button className="btn ghost sm" onClick={() => { setErr(""); onDelete(); }}>Eliminar</button>}
     </div>

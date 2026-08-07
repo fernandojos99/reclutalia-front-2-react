@@ -5,6 +5,7 @@ import { LandingPage } from "../landing/LandingPage";
 import { MisVacantesPage } from "../pages/formador/MisVacantesPage";
 import { VacanteDetailPage } from "../pages/formador/VacanteDetailPage";
 import { RevisarVacantePage } from "../pages/formador/RevisarVacantePage";
+import { EntrevistasAsignadasPage } from "../pages/formador/EntrevistasAsignadasPage";
 import { AdminVacantesPage } from "../pages/admin/VacantesPage";
 import { NuevaVacantePage } from "../pages/admin/NuevaVacantePage";
 import { PoolPage } from "../pages/admin/PoolPage";
@@ -23,6 +24,7 @@ export function AppRoutes() {
         <Route path="/formador" element={<MisVacantesPage />} />
         <Route path="/formador/vacante/:vacId" element={<VacanteDetailPage />} />
         <Route path="/formador/vacante/:vacId/revisar" element={<RevisarVacantePage />} />
+        <Route path="/formador/entrevistas" element={<EntrevistasAsignadasPage />} />
         <Route path="/formador/notificaciones" element={<NotificacionesPage />} />
         <Route path="/formador/chat" element={<ChatPage />} />
 

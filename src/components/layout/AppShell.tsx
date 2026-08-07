@@ -9,6 +9,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BotSoporte } from "./BotSoporte";
+import { AvisoLiberacion, buscarLiberacion } from "../formador/AvisoLiberacion";
 import { PerfilEditor } from "../candidato/PerfilEditor";
 import { useDemo } from "../../contexts/DemoContext";
 import { BotProvider } from "../../contexts/BotContext";
@@ -20,6 +21,7 @@ const THEME_CSS = buildThemeCss();
 
 function tituloPorRuta(pathname: string): string {
   if (pathname.endsWith("/chat")) return "Asistente IA";
+  if (pathname === "/formador/entrevistas") return "Entrevistas asignadas";
   if (pathname.includes("/notificaciones")) return "Centro de notificaciones";
   if (pathname.endsWith("/revisar")) return "Revisar vacante";
   if (pathname.startsWith("/formador/vacante")) return "Detalle de vacante";
@@ -34,10 +36,11 @@ function tituloPorRuta(pathname: string): string {
 
 export function AppShell() {
   const { rol, formadorId, candId, tema, toastMsg, toast } = useDemo();
-  const { formadores, candidatos, notificaciones, actions, reload, reloadNotificaciones } = useData();
+  const { formadores, candidatos, vacantes, notificaciones, actions, reload, reloadNotificaciones } = useData();
   const location = useLocation();
   const navigate = useNavigate();
   const [editPerfil, setEditPerfil] = useState(false);
+  const [avisoCerrado, setAvisoCerrado] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // drawer del sidebar en móvil
   // Colapsar el sidebar en escritorio (persistido) para ver el contenido más extendido.
   const [sideCollapsed, setSideCollapsed] = useState(() => localStorage.getItem("reclutalia_side_collapsed") === "1");
@@ -80,6 +83,29 @@ export function AppShell() {
     ).length;
   }, [notificaciones, rol, formadorId, candId]);
 
+  /**
+   * Entrevistas que le pidieron a este formador y aún no cierra.
+   * Se deriva de `vacantes`, que el store ya tiene, en vez de pedirlas al backend: así el contador
+   * se actualiza solo con cada recarga y el shell no añade una petición propia.
+   */
+  const entrevistasPendientes = useMemo(() => {
+    if (rol !== "formador") return 0;
+    let n = 0;
+    for (const v of vacantes) {
+      for (const p of Object.values(v.pipeline || {})) {
+        for (const e of p.entrevistasExtra ?? []) {
+          if (e.formadorId === formadorId && e.estado !== "realizada") n++;
+        }
+      }
+    }
+    return n;
+  }, [vacantes, rol, formadorId]);
+
+  const avisoLiberacion = useMemo(
+    () => (rol === "formador" ? buscarLiberacion(vacantes, candidatos, formadorId) : null),
+    [rol, vacantes, candidatos, formadorId],
+  );
+
   // Botón de la barra superior para alternar entre plataforma y chat integrado (todos los roles;
   // admin solo ve el tab de Mensajes, formador/candidato ven además el Asistente IA).
   const puedeChat = rol === "formador" || rol === "candidato" || rol === "admin";
@@ -110,6 +136,7 @@ export function AppShell() {
     <div className={"rk" + (sideCollapsed ? " side-collapsed" : "") + (enChat ? " en-chat" : "")} data-theme={tema}>
       <style>{THEME_CSS}</style>
       <Sidebar formadores={formadores} candidatos={candidatos} noLeidas={noLeidas}
+        entrevistasPendientes={entrevistasPendientes}
         open={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="main">
         <Topbar titulo={tituloPorRuta(location.pathname)} nombre={identidad.nombre}
@@ -124,6 +151,10 @@ export function AppShell() {
         </div>
       </div>
       <BotSoporte />
+      {/* Un colaborador del formador aceptó otra vacante: se avisa una sola vez al entrar. */}
+      {avisoLiberacion && !avisoCerrado && (
+        <AvisoLiberacion caso={avisoLiberacion} onClose={() => setAvisoCerrado(true)} />
+      )}
       {editPerfil && candidato && (
         <PerfilEditor cand={candidato} onClose={() => setEditPerfil(false)}
           onSave={(c) => { void actions.guardarCandidato(c); setEditPerfil(false); toast("Perfil actualizado"); }} />
