@@ -71,8 +71,10 @@ export function TagPicker({ options, value, onChange, addNew }: {
       <div className="tagpick">
         {options.map((o) => <button type="button" key={o} className={"tag" + (value.includes(o) ? " on" : "")} onClick={() => toggle(o)}>{o}</button>)}
       </div>
+      {/* El layout de `.tag-add` va en la clase, NO inline: un `style` inline ganaría siempre a la
+          regla de `base.css` que hoy oculta este bloque. */}
       {addNew && (
-        <div className="tag-add" style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <div className="tag-add">
           <input placeholder="Agregar otra opción…" value={nuevo} onChange={(e) => setNuevo(e.target.value)} style={{ maxWidth: 260 }} />
           <button type="button" className="btn ghost sm" onClick={() => { if (nuevo.trim()) { onChange([...value, nuevo.trim()]); setNuevo(""); } }}><Plus size={13} /> Agregar</button>
         </div>

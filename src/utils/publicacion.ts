@@ -56,11 +56,22 @@ export function leerFunciones(md: string): string[] {
 /** ¿La descripción tiene la sección editable? Si no, el editor debe avisar en vez de mentir. */
 export const tieneFunciones = (md: string): boolean => rangoFunciones(md.split("\n")) !== null;
 
-/** Sustituye los bullets de funciones conservando el resto del markdown tal cual. */
+/**
+ * Sustituye los bullets de funciones conservando el resto del markdown tal cual.
+ *
+ * Si la descripción no trae la sección, la CREA al final. Sin esto, las vacantes nuevas —que
+ * nacen con descripción de texto libre— no tendrían forma de estrenar sus funciones.
+ */
 export function escribirFunciones(md: string, funciones: string[]): string {
   const lineas = md.split("\n");
   const rango = rangoFunciones(lineas);
-  if (!rango) return md;
-  const cuerpo = ["", ...funciones.map((f) => `- ${f.trim()}`), ""];
-  return [...lineas.slice(0, rango[0]), ...cuerpo, ...lineas.slice(rango[1])].join("\n");
+  const bullets = funciones.map((f) => `- ${f.trim()}`);
+
+  if (!rango) {
+    if (!bullets.length) return md;
+    const base = md.trimEnd();
+    return [...(base ? [base, ""] : []), `**${FUNCIONES}**`, "", ...bullets, ""].join("\n");
+  }
+
+  return [...lineas.slice(0, rango[0]), "", ...bullets, "", ...lineas.slice(rango[1])].join("\n");
 }

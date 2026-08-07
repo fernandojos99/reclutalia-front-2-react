@@ -58,8 +58,22 @@ export function RevisarVacantePage() {
   const [textoVoz, setTextoVoz] = useState("");
   const [pausando, setPausando] = useState(false);
 
-  // El borrador arranca con el requisito real en cuanto llegan los datos.
-  useEffect(() => { if (v && !draft) setDraft(v.req); }, [v, draft]);
+  /**
+   * El borrador arranca con el requisito real en cuanto llegan los datos.
+   *
+   * Si la vacante YA se publicó, sus cuatro bloques entran como confirmados: obligar a repasarlos
+   * uno por uno solo para volver a donde ya estabas no aporta nada. `estado` ya persiste ese hecho
+   * (`abierta`/`cerrada`), así que no hace falta ningún campo extra. Solo se siembra la primera
+   * vez, al llegar la vacante — después manda lo que el formador vaya confirmando.
+   */
+  useEffect(() => {
+    if (!v || draft) return;
+    setDraft(v.req);
+    if (v.estado === "abierta" || v.estado === "cerrada") {
+      setConfirmados([true, true, true, true]);
+      setFase("editar"); // ya hay contenido: se entra a ajustarlo, no a dictarlo de cero
+    }
+  }, [v, draft]);
 
   if (!v || !draft) return <p>Cargando vacante…</p>;
 
@@ -90,8 +104,12 @@ export function RevisarVacantePage() {
     }
   };
 
-  /** Entrar a publicar siempre arranca por la voz, aunque en una visita previa se llegara al anuncio. */
-  const irAPublicacion = () => { setFase("voz"); setSeccion("publicacion"); };
+  /**
+   * Entrar a publicar arranca por la voz, aunque en una visita previa se llegara al anuncio.
+   * Excepción: una vacante ya publicada entra directo a "Editar" — su contenido existe, no hay
+   * nada que dictar de cero.
+   */
+  const irAPublicacion = () => { setFase(publicada ? "editar" : "voz"); setSeccion("publicacion"); };
 
   const confirmar = (i: number) => {
     setConfirmados((c) => c.map((x, k) => (k === i ? true : x)));
@@ -139,7 +157,6 @@ export function RevisarVacantePage() {
         {publicada ? <Users size={16} /> : <Rocket size={16} />}{" "}
         {publicada ? "Ver el Marketplace de talento" : publicando ? "Publicando…" : "Publicar vacante"}
       </button>
-      <Link className="btn ghost" to={`/formador/vacante/${v.id}`}>Ver el proceso completo</Link>
     </>
   );
 
@@ -178,7 +195,7 @@ export function RevisarVacantePage() {
           editable onCambiarReq={setDraft} />
       ) : (
         <>
-          <p className="help" style={{ marginTop: 0 }}>Así verá el anuncio el candidato.</p>
+          <p className="help" style={{ marginTop: 0, marginBottom: 16 }}>Así verá el anuncio el candidato.</p>
           <PasoPublicacion req={draft} destacados={destacados} acciones={accionesPublicacion} />
         </>
       )}

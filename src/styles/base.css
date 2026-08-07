@@ -520,8 +520,8 @@ img.avatar{object-fit:cover;}
 .pub-bloque .desc-md li{font-size:13px;line-height:1.55;color:var(--ink2);}
 .pub-nota{font-size:12.5px;line-height:1.5;color:var(--ink2);margin:0;}
 
-/* Descripción del checkbox de búsqueda automática: tono de IA, bajo su propio título. */
-.pub-auto{color:var(--ai);font-weight:600;}
+/* Descripción del checkbox de búsqueda automática: mismo tono que los ítems de "Lo que ofrecemos". */
+.pub-auto{color:var(--ink2);}
 
 /* Controles que solo existen en modo edición del anuncio. */
 .pub-edit-hero{margin:10px 0;}
@@ -529,9 +529,9 @@ img.avatar{object-fit:cover;}
 .pub-edit-hero select{max-width:420px;}
 .pub-edit-hint{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#C9C9C9;margin-top:5px;}
 
-/* "+ Agregar" de los TagPicker: desactivado por ahora. La lógica sigue viva; para recuperarlo
-   basta con borrar esta regla. */
-.tag-add{display:none;}
+/* "+ Agregar" de los TagPicker: desactivado por ahora. La lógica sigue viva; para recuperarlo,
+   cambiar `none` por `flex`. El layout vive aquí y no inline justo para que esto pueda ganarle. */
+.tag-add{display:none;gap:8px;margin-top:8px;}
 /* "Lo que ofrecemos": sin caja ni desplegable, misma tipografía que tenía dentro de `.desp`. */
 .ofrece-grupo+.ofrece-grupo{margin-top:14px;}
 .ofrece-sub{font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:6px;}

@@ -9,7 +9,7 @@
  * Las acciones del pie las inyecta quien lo usa (publicar, o aplicar/descartar el dictado).
  */
 import type { ReactNode } from "react";
-import { MapPin, Clock, CheckCircle2, ShieldCheck, Sparkles, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, ShieldCheck, Sparkles, Plus, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState } from "react";
@@ -99,35 +99,32 @@ export function PasoPublicacion({ req, destacados, acciones, editable = false, o
         <section className="pub-bloque">
           <h4 className="pub-h">Perfil</h4>
           {editable ? (
-            !hayFunciones ? (
-              <div style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
-                <AlertTriangle size={16} style={{ color: "var(--gold-dark)", flexShrink: 0, marginTop: 2 }} />
-                <p className="pub-nota">
-                  Esta vacante no tiene la sección «Funciones principales» en su descripción, así que
-                  no hay funciones que listar. Se puede editar desde el descriptivo de la vacante.
+            <>
+              <label>Funciones principales</label>
+              {/* Sin sección todavía (vacante recién creada): `escribirFunciones` la crea con la
+                  primera que se añada, así que aquí solo hay que avisar, no bloquear. */}
+              {!hayFunciones && (
+                <p className="pub-nota" style={{ marginBottom: 10 }}>
+                  Esta vacante aún no tiene funciones. La primera que añadas creará la sección.
                 </p>
-              </div>
-            ) : (
-              <>
-                <label>Funciones principales</label>
-                {funciones.map((f, i) => (
-                  <div className="fn-fila" key={i}>
-                    <textarea rows={2} value={f}
-                      onChange={(e) => guardarFns(funciones.map((x, k) => (k === i ? e.target.value : x)))} />
-                    <button type="button" className="btn ghost sm" title="Quitar esta función"
-                      onClick={() => guardarFns(funciones.filter((_, k) => k !== i))}><Trash2 size={13} /></button>
-                  </div>
-                ))}
-                <div className="fn-fila" style={{ marginTop: 10 }}>
-                  <textarea rows={2} value={nuevaFn} placeholder="Escribe una función nueva…"
-                    onChange={(e) => setNuevaFn(e.target.value)} />
-                  <button type="button" className="btn ghost sm" disabled={!nuevaFn.trim()}
-                    onClick={() => { guardarFns([...funciones, nuevaFn.trim()]); setNuevaFn(""); }}>
-                    <Plus size={13} /> Añadir
-                  </button>
+              )}
+              {funciones.map((f, i) => (
+                <div className="fn-fila" key={i}>
+                  <textarea rows={2} value={f}
+                    onChange={(e) => guardarFns(funciones.map((x, k) => (k === i ? e.target.value : x)))} />
+                  <button type="button" className="btn ghost sm" title="Quitar esta función"
+                    onClick={() => guardarFns(funciones.filter((_, k) => k !== i))}><Trash2 size={13} /></button>
                 </div>
-              </>
-            )
+              ))}
+              <div className="fn-fila" style={{ marginTop: 10 }}>
+                <textarea rows={2} value={nuevaFn} placeholder="Escribe una función nueva…"
+                  onChange={(e) => setNuevaFn(e.target.value)} />
+                <button type="button" className="btn ghost sm" disabled={!nuevaFn.trim()}
+                  onClick={() => { guardarFns([...funciones, nuevaFn.trim()]); setNuevaFn(""); }}>
+                  <Plus size={13} /> Añadir
+                </button>
+              </div>
+            </>
           ) : (
             req.descripcion && (
               <div className="desc-md">
