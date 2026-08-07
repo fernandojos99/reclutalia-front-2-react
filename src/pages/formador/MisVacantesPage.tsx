@@ -15,12 +15,20 @@ import { candidatoElegido } from "../../utils/fases";
 import { diasActivaLabel } from "../../utils/format";
 import { PIPE_IDX } from "../../constants/catalogos";
 
+/**
+ * Vista elegida la última vez. Vive en el módulo, no en el componente: la página se desmonta al
+ * entrar a una vacante y volver, y el toggle debe recordar dónde estabas. Se pierde al refrescar,
+ * que es justo el alcance pedido — por eso no usa localStorage.
+ */
+let vistaRecordada: "plantilla" | "progreso" = "plantilla";
+
 export function MisVacantesPage() {
   const { formadorId } = useDemo();
   const { vacantes, formadores, loading } = useData();
   const navigate = useNavigate();
   const [soloCompletadas, setSoloCompletadas] = useState(false);
-  const [vista, setVista] = useState<"plantilla" | "progreso">("plantilla");
+  const [vista, setVistaState] = useState<"plantilla" | "progreso">(vistaRecordada);
+  const setVista = (v: "plantilla" | "progreso") => { vistaRecordada = v; setVistaState(v); };
 
   if (loading) return <p>Cargando…</p>;
 
@@ -65,7 +73,7 @@ export function MisVacantesPage() {
         <button
           className="btn ghost sm"
           style={{ marginLeft: "auto" }}
-          onClick={() => setVista((v) => (v === "plantilla" ? "progreso" : "plantilla"))}
+          onClick={() => setVista(enPlantilla ? "progreso" : "plantilla")}
           title={enPlantilla ? "Ver el avance de tus vacantes" : "Ver la plantilla de tu equipo"}
         >
           {enPlantilla ? <><ListChecks size={13} /> Progreso</> : <><Users size={13} /> Plantilla</>}

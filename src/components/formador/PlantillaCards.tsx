@@ -8,7 +8,7 @@
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, Users, Minus, Plus, RotateCcw } from "lucide-react";
+import { CheckCircle2, ChevronRight, Users, Minus, Plus, RotateCcw, PauseCircle } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
@@ -95,10 +95,12 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
         {vacantes.map((v) => {
           const persona = ocupante(v);
           const { n, estimado } = persona ? { n: 0, estimado: false } : viables(v);
+          // La pausa solo tiñe posiciones sin cubrir: una ya ocupada no está reclutando.
+          const pausada = !persona && v.req.pausada;
           return (
             <div className="org-rama" key={v.id}>
               <div
-                className={"plant-card" + (persona ? "" : " libre")}
+                className={"plant-card" + (persona ? "" : " libre") + (pausada ? " pausada" : "")}
                 role="button"
                 tabIndex={0}
                 onClick={() => navigate(`/formador/vacante/${v.id}/revisar`)}
@@ -115,7 +117,7 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
                     </>
                   ) : (
                     <>
-                      <Chip tone="gold">Disponible</Chip>
+                      {pausada ? <Chip icon={PauseCircle}>Pausada</Chip> : <Chip tone="gold">Disponible</Chip>}
                       {/* Etiqueta siempre visible: la acción de la tarjeta no debe depender del hover. */}
                       <span className="plant-ajustar">Ajustar perfil <ChevronRight size={14} /></span>
                     </>
@@ -127,6 +129,10 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
                 {persona ? (
                   <div className="plant-viables cubierta">
                     <CheckCircle2 size={14} /> Posición cubierta
+                  </div>
+                ) : pausada ? (
+                  <div className="plant-viables vacio">
+                    <PauseCircle size={14} /> Búsqueda en pausa
                   </div>
                 ) : n > 0 ? (
                   <button

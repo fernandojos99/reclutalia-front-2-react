@@ -404,6 +404,13 @@ img.avatar{object-fit:cover;}
 .plant-card:hover{border-color:#CFC9BD;border-left-color:var(--ok);}
 .plant-card.libre{border-left-color:var(--gold);}
 .plant-card.libre:hover{border-left-color:var(--gold);}
+/* Vacante pausada: toda la tarjeta en grises, sin el acento de color. */
+.plant-card.pausada{background:var(--bg);border-left-color:var(--line);}
+.plant-card.pausada:hover{border-left-color:var(--line);}
+.plant-card.pausada .plant-puesto,
+.plant-card.pausada .plant-ajustar,
+.plant-card.pausada .org-num{color:var(--gray);}
+.plant-card.pausada .chip{background:var(--bg);border-color:var(--line);color:var(--gray);}
 .plant-nom{display:flex;align-items:center;gap:10px;min-width:0;}
 .plant-ajustar{display:inline-flex;align-items:center;gap:3px;margin-left:auto;font-size:11.5px;font-weight:700;color:var(--gray);white-space:nowrap;}
 .plant-nom b{font-size:14.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;}
@@ -512,6 +519,9 @@ img.avatar{object-fit:cover;}
 .pub-bloque .desc-md p,
 .pub-bloque .desc-md li{font-size:13px;line-height:1.55;color:var(--ink2);}
 .pub-nota{font-size:12.5px;line-height:1.5;color:var(--ink2);margin:0;}
+
+/* Descripción del checkbox de búsqueda automática: tono de IA, bajo su propio título. */
+.pub-auto{color:var(--ai);font-weight:600;}
 
 /* Controles que solo existen en modo edición del anuncio. */
 .pub-edit-hero{margin:10px 0;}

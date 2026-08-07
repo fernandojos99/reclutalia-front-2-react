@@ -16,7 +16,7 @@
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { CheckCircle2, Clock, Rocket, Users } from "lucide-react";
+import { CheckCircle2, Clock, PauseCircle, PlayCircle, Rocket, Users } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
@@ -27,6 +27,7 @@ import { PasoBeneficios } from "../../components/formador/revisar/PasoBeneficios
 import { PasoHerramientas } from "../../components/formador/revisar/PasoHerramientas";
 import { PasoPublicacion } from "../../components/formador/revisar/PasoPublicacion";
 import { EditarVoz } from "../../components/formador/revisar/EditarVoz";
+import { CAMPOS_VOZ } from "../../utils/perfilIA";
 import type { Requisito } from "../../types/models/domain";
 
 /** Los 4 bloques a verificar. `tab` es la etiqueta de una palabra de la barra de navegación. */
@@ -53,6 +54,9 @@ export function RevisarVacantePage() {
   const [confirmados, setConfirmados] = useState([false, false, false, false]);
   const [destacados, setDestacados] = useState<string[]>([]);
   const [publicando, setPublicando] = useState(false);
+  /** El dictado vive aquí, no en `EditarVoz`: así sobrevive a cambiar de pestaña. */
+  const [textoVoz, setTextoVoz] = useState("");
+  const [pausando, setPausando] = useState(false);
 
   // El borrador arranca con el requisito real en cuanto llegan los datos.
   useEffect(() => { if (v && !draft) setDraft(v.req); }, [v, draft]);
@@ -64,6 +68,27 @@ export function RevisarVacantePage() {
   // Con cambios pendientes ante el admin no se toca nada: se resolverían en falso.
   const bloqueado = v.estado === "cambios";
   const listos = confirmados.every(Boolean);
+
+  /**
+   * Pausar guarda YA, sin esperar a publicar (el backend lo permite: `editar()` no mira el estado).
+   *
+   * Se manda `v.req`, no `draft`: partir de lo ya persistido evita que pausar arrastre a la base
+   * las ediciones a medias que el formador tenga abiertas en el asistente. El `draft` se actualiza
+   * aparte para que el flag siga ahí al publicar.
+   */
+  const alternarPausa = async () => {
+    const pausada = !draft.pausada;
+    setPausando(true);
+    try {
+      await actions.editarVacante(v.id, { ...v.req, pausada });
+      setDraft((d) => (d ? { ...d, pausada } : d));
+      toast(pausada ? "Vacante pausada · no se reclutará hasta reanudarla" : "Vacante reanudada");
+    } catch (e) {
+      toast("No se pudo cambiar la pausa: " + (e as Error).message);
+    } finally {
+      setPausando(false);
+    }
+  };
 
   /** Entrar a publicar siempre arranca por la voz, aunque en una visita previa se llegara al anuncio. */
   const irAPublicacion = () => { setFase("voz"); setSeccion("publicacion"); };
@@ -136,11 +161,15 @@ export function RevisarVacantePage() {
       {fase === "voz" ? (
         <EditarVoz
           req={draft}
+          texto={textoVoz}
+          onTexto={setTextoVoz}
           onAplicar={(r, campos) => {
             setDestacados(campos);
             setDraft(r);
             setFase("editar");
-            toast("Publicación actualizada con lo que dictaste");
+            toast(campos.length
+              ? `Se acomodaron ${campos.length} campo(s) con lo que dictaste: ${campos.map((c) => CAMPOS_VOZ[c] ?? c).join(", ")}`
+              : "No se reconoció ningún campo en el dictado; puedes intentarlo con más detalle");
           }}
           onOmitir={() => setFase("editar")}
         />
@@ -166,6 +195,18 @@ export function RevisarVacantePage() {
           {publicada
             ? <Chip tone="ok" icon={CheckCircle2}>Ya publicada</Chip>
             : <Chip tone="gold">Pendiente de publicar</Chip>}
+          {draft.pausada && <Chip icon={PauseCircle}>Pausada</Chip>}
+          <button
+            type="button"
+            className={"btn sm " + (draft.pausada ? "gold" : "ghost")}
+            style={{ marginLeft: "auto" }}
+            // Con cambios pendientes ante el admin, `editar()` los resolvería en silencio.
+            disabled={pausando || bloqueado}
+            title={bloqueado ? "Hay cambios pendientes de resolver por el administrador" : undefined}
+            onClick={() => void alternarPausa()}
+          >
+            {draft.pausada ? <><PlayCircle size={14} /> Reanudar vacante</> : <><PauseCircle size={14} /> Pausar vacante</>}
+          </button>
         </div>
       </div>
       {bloqueado && (

@@ -1,18 +1,18 @@
 /**
- * Pantallas 5, 6 y 7 · Editar con voz.
+ * Editar con voz, en dos pantallas.
  *
  *  5 · "Cuéntanos qué estás buscando" — micrófono grande. La grabación es SIMULADA (no hay
  *      MediaRecorder ni Web Speech): tras la animación se vuelca `TRANSCRIPT_DEMO`, que queda
  *      editable en el textarea. Mismo enfoque que el dictado de `EntrevistaModal`.
- *  6 · "Generando vista previa de tu publicación" — indicador de proceso mientras
- *      `interpretarTranscript()` acomoda el texto en los campos del requisito.
- *  7 · "Publicación (a la medida)" — la publicación ya renderizada, con los campos que cambiaron
- *      marcados, para aplicarla o descartarla.
+ *  6 · Procesado, mientras `interpretarTranscript()` acomoda el texto en los campos. Al terminar
+ *      aplica la propuesta y devuelve el control: la pestaña "Editar" ya es la vista previa, así
+ *      que no hace falta una pantalla intermedia que la duplique.
+ *
+ * El texto dictado NO vive aquí: lo guarda la página, para que sobreviva a cambiar de pestaña.
  */
 import { useEffect, useState } from "react";
-import { Mic, Square, Loader2, CheckCircle2, X, Sparkles, ArrowRight } from "lucide-react";
-import { PasoPublicacion } from "./PasoPublicacion";
-import { TRANSCRIPT_DEMO, CAMPOS_VOZ, interpretarTranscript } from "../../../utils/perfilIA";
+import { Mic, Square, Loader2, ArrowRight } from "lucide-react";
+import { TRANSCRIPT_DEMO, interpretarTranscript } from "../../../utils/perfilIA";
 import type { Requisito } from "../../../types/models/domain";
 
 const MSGS_PROCESO = [
@@ -24,39 +24,44 @@ const MSGS_PROCESO = [
 
 interface Props {
   req: Requisito;
+  /** Texto dictado; lo custodia la página para que no se pierda al cambiar de pestaña. */
+  texto: string;
+  onTexto: (t: string) => void;
   /** Devuelve el requisito ya fusionado y los nombres de campo que cambiaron. */
   onAplicar: (r: Requisito, campos: string[]) => void;
   /** Sale del dictado sin aplicar nada: lleva al anuncio tal cual está el borrador. */
   onOmitir: () => void;
 }
 
-export function EditarVoz({ req, onAplicar, onOmitir }: Props) {
-  const [paso, setPaso] = useState<5 | 6 | 7>(5);
+export function EditarVoz({ req, texto, onTexto, onAplicar, onOmitir }: Props) {
+  const [paso, setPaso] = useState<5 | 6>(5);
   const [grabando, setGrabando] = useState(false);
-  const [texto, setTexto] = useState("");
-  const [propuesta, setPropuesta] = useState<Partial<Requisito> | null>(null);
   const [msg, setMsg] = useState(0);
 
   // Grabación simulada: 2.5 s de animación y luego el transcript enlatado.
   useEffect(() => {
     if (!grabando) return;
     const t = window.setTimeout(() => {
-      setTexto((prev) => (prev ? prev + " " : "") + TRANSCRIPT_DEMO);
+      onTexto((texto ? texto + " " : "") + TRANSCRIPT_DEMO);
       setGrabando(false);
     }, 2500);
     return () => window.clearTimeout(t);
+    // `texto` se lee dentro pero no debe reiniciar el temporizador de la grabación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grabando]);
 
-  // Pantalla 6: mensajes rotando mientras se interpreta el dictado.
+  // Pantalla 6: mensajes rotando y, al terminar, la propuesta se aplica y se sale del dictado.
   useEffect(() => {
     if (paso !== 6) return;
     const iv = window.setInterval(() => setMsg((i) => (i + 1) % MSGS_PROCESO.length), 1200);
     const fin = window.setTimeout(() => {
-      setPropuesta(interpretarTranscript(texto));
-      setPaso(7);
+      const cambios = interpretarTranscript(texto);
+      onAplicar({ ...req, ...cambios }, Object.keys(cambios));
     }, 3600);
     return () => { window.clearInterval(iv); window.clearTimeout(fin); };
-  }, [paso, texto]);
+    // Solo debe dispararse al entrar en la pantalla 6; `req`/`texto` se leen en ese instante.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paso]);
 
   // ── Pantalla 5 ──
   if (paso === 5) {
@@ -90,7 +95,7 @@ export function EditarVoz({ req, onAplicar, onOmitir }: Props) {
 
         <div className="field" style={{ marginTop: 18 }}>
           <label>Lo que dictaste (puedes editarlo)</label>
-          <textarea rows={7} value={texto} onChange={(e) => setTexto(e.target.value)}
+          <textarea rows={7} value={texto} onChange={(e) => onTexto(e.target.value)}
             placeholder="Aquí aparecerá lo que dictes; también puedes escribirlo a mano." />
         </div>
 
@@ -106,53 +111,17 @@ export function EditarVoz({ req, onAplicar, onOmitir }: Props) {
     );
   }
 
-  // ── Pantalla 6 ──
-  if (paso === 6) {
-    return (
-      <div>
-        <div className="proc-wrap">
-          <Loader2 size={46} className="ai-spin" />
-          <h3 style={{ fontSize: 16, color: "var(--ai)" }}>Generando vista previa de tu publicación</h3>
-          <div className="ai-search-msg">{MSGS_PROCESO[msg]}</div>
-          <div className="mini-pipe" style={{ width: 200 }}>
-            {MSGS_PROCESO.map((_, k) => <i key={k} className={k <= msg ? "f" : ""} />)}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Pantalla 7 ──
-  const cambios = propuesta ?? {};
-  const campos = Object.keys(cambios);
-  const reqFinal: Requisito = { ...req, ...cambios };
-
+  // ── Pantalla 6 ── (al terminar sale sola hacia la pestaña "Editar")
   return (
     <div>
-      <div className="aibox" style={{ marginBottom: 14 }}>
-        <div className="hd"><Sparkles size={15} /> Publicación (a la medida)</div>
-        <p style={{ fontSize: 12.5 }}>
-          {campos.length
-            ? <>Se acomodaron <b>{campos.length} campo(s)</b> con lo que dictaste: {campos.map((c) => CAMPOS_VOZ[c] ?? c).join(", ")}. Revísalos antes de aplicarlos.</>
-            : <>No se reconoció ningún campo en el dictado. Puedes volver e intentarlo con más detalle.</>}
-        </p>
+      <div className="proc-wrap">
+        <Loader2 size={46} className="ai-spin" />
+        <h3 style={{ fontSize: 16, color: "var(--ai)" }}>Generando vista previa de tu publicación</h3>
+        <div className="ai-search-msg">{MSGS_PROCESO[msg]}</div>
+        <div className="mini-pipe" style={{ width: 200 }}>
+          {MSGS_PROCESO.map((_, k) => <i key={k} className={k <= msg ? "f" : ""} />)}
+        </div>
       </div>
-
-      <PasoPublicacion
-        req={reqFinal}
-        destacados={campos}
-        acciones={
-          <>
-            <button type="button" className="btn gold" disabled={!campos.length} onClick={() => onAplicar(reqFinal, campos)}>
-              <CheckCircle2 size={16} /> Aplicar a la publicación
-            </button>
-            <button type="button" className="btn ghost" onClick={() => { setPropuesta(null); setPaso(5); }}>
-              Volver a dictar
-            </button>
-            <button type="button" className="btn ghost" onClick={onOmitir}><X size={15} /> Descartar</button>
-          </>
-        }
-      />
     </div>
   );
 }

@@ -166,11 +166,14 @@ export function PasoPublicacion({ req, destacados, acciones, editable = false, o
               ))}
             </div>
           </div>
-          <label className="chk-inline" style={{ marginTop: 4 }}>
-            <input type="checkbox" checked={req.busquedaAutomatica}
-              onChange={(e) => cambiar({ ...req, busquedaAutomatica: e.target.checked })} />
-            {" "}Buscar candidatos automáticamente cada vez que se libere vacante
-          </label>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Búsqueda automática</label>
+            <label className="chk-inline pub-auto">
+              <input type="checkbox" checked={req.busquedaAutomatica}
+                onChange={(e) => cambiar({ ...req, busquedaAutomatica: e.target.checked })} />
+              {" "}Buscar candidatos automáticamente cada vez que se libere vacante
+            </label>
+          </div>
         </div>
       )}
 

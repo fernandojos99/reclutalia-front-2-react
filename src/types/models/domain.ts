@@ -58,6 +58,8 @@ export interface Requisito {
   sueldoOculto: boolean;
   /** Relanza la búsqueda de candidatos cada vez que la posición se libera. */
   busquedaAutomatica: boolean;
+  /** Posición en pausa: no se recluta, aunque la vacante siga viva. */
+  pausada: boolean;
   tipoVacante: string;
   puedeSerSuperior: boolean;
   ubicacionNoRelevante: boolean;
