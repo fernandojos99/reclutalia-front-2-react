@@ -2,3 +2,8 @@ node_modules
 dist
 *.log
 .vite
+
+# Configuración local (p. ej. VITE_API_URL para apuntar al backend de :4000).
+.env
+.env.*
+!.env.example
