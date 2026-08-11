@@ -1,16 +1,19 @@
 /**
  * "IA" de perfil — 100 % DETERMINISTA (regla del repo: nada de azar, todo reproducible).
  *
- * Cubre dos usos:
+ * Cubre tres usos:
  *  1. `skillsSugeridas()` — recorta los catálogos de habilidades a lo que va acorde al puesto
- *     (lo consume el botón "Editar" del asistente Revisar vacante).
- *  2. `interpretarTranscript()` — convierte el dictado por voz en campos del `Requisito`.
+ *     (lo consume la sección "Requisitos" del anuncio).
+ *  2. `areasSugeridas()` — sube al frente las áreas predeterminadas del puesto, sin recortar.
+ *  3. `interpretarTranscript()` — convierte el dictado por voz en campos del `Requisito`.
+ *     SIN CONSUMIDORES desde que "Explicar con IA" redacta con `mrfn()` en vez de parsear texto.
+ *     Se conserva porque es el único parser de dictado que hay; borrarlo cuesta más que recuperarlo.
  *
  * `PERFIL_POR_AREA` es la fuente única del mapa por área: también lo usa `sugerirPerfil()`
  * de `VistaDescriptivo` para no acabar con dos criterios divergentes.
  */
 import {
-  CIUDADES, EDUCACION, ESPECIALIDADES, HARD_SKILLS, MODALIDADES, SOFT_SKILLS, TURNOS,
+  CIUDADES, EDUCACION, ESPECIALIDADES, HARD_SKILLS, MODALIDADES, PROFESIONES, SOFT_SKILLS, TURNOS,
 } from "../constants/catalogos";
 import type { Requisito } from "../types/models/domain";
 
@@ -69,6 +72,25 @@ export const PERFIL_AREA_DEFAULT: PerfilArea = {
   hardSkills: ["Excel avanzado"],
   softSkills: ["Comunicación efectiva", "Trabajo en equipo"],
 };
+
+/**
+ * Áreas de conocimiento y de experiencia para el editor de Requisitos.
+ *
+ * A diferencia de las habilidades, aquí NO se recorta el catálogo: los topes (3 y 5) ya limitan
+ * cuánto se puede elegir, y esconder opciones obligaría a "ver catálogo completo" para algo que
+ * cabe en pantalla. Lo que sí se hace es subir al frente lo predeterminado para el puesto.
+ */
+export function areasSugeridas(req: Requisito): { areas: string[]; esp: string[] } {
+  const base = PERFIL_POR_AREA[req.area] ?? PERFIL_AREA_DEFAULT;
+  const alFrente = (catalogo: readonly string[], previas: string[], elegidas: string[]): string[] => {
+    const arriba = ordenar(catalogo, [...new Set([...previas, ...elegidas])]);
+    return [...arriba, ...catalogo.filter((x) => !arriba.includes(x))];
+  };
+  return {
+    areas: alFrente(PROFESIONES, base.areasConocimiento, req.areasConocimiento),
+    esp: alFrente(ESPECIALIDADES, base.espRequeridas, req.espRequeridas),
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1 · Habilidades acordes al puesto

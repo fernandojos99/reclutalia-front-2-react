@@ -4,7 +4,7 @@
  * Espeja el slice implementado en el backend (ver REFACTOR-PLAN.md §6).
  */
 import { apiClient } from "../lib/apiClient";
-import type { Requisito, Vacante, Cambios } from "../types/models/domain";
+import type { Requisito, Vacante, Cambios, TipoSolicitud } from "../types/models/domain";
 
 export const vacanteService = {
   listar(formadorId?: string): Promise<Vacante[]> {
@@ -38,6 +38,14 @@ export const vacanteService = {
 
   aprobar(vacId: string): Promise<Vacante> {
     return apiClient.post<Vacante>(`/vacantes/${vacId}/aprobar`);
+  },
+
+  crearSolicitud(vacId: string, tipo: TipoSolicitud, valor: string): Promise<Vacante> {
+    return apiClient.post<Vacante>(`/vacantes/${vacId}/solicitudes`, { tipo, valor });
+  },
+
+  resolverSolicitud(vacId: string, solId: string, aprobar: boolean, nota = ""): Promise<Vacante> {
+    return apiClient.post<Vacante>(`/vacantes/${vacId}/solicitudes/${solId}/resolver`, { aprobar, nota });
   },
 
   solicitarMasCandidatos(vacId: string, multiposting: boolean): Promise<Vacante> {

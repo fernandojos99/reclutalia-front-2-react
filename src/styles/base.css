@@ -542,3 +542,76 @@ img.avatar{object-fit:cover;}
 .ofrece-lista li{display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;}
 .ofrece-lista li:last-child{margin-bottom:0;}
 .ofrece-lista svg{color:var(--ok);flex-shrink:0;margin-top:3px;}
+
+/* Botón azul secundario, para no poner dos botones sólidos idénticos juntos ("Explicar con IA"
+   junto a "Generar y guardar"). */
+.btn.ai-soft{background:var(--ai-soft,#EEF2FF);border-color:var(--ai);color:var(--ai);}
+.btn.ai-soft:hover{filter:none;background:var(--paper);}
+
+/* Acciones dentro de la caja oscura del anuncio: arriba a la izquierda, sobre el título. */
+.pub-hero-acciones{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+
+/* Cabecera de cada sección editable: título a la izquierda y su lápiz a la derecha. */
+.pub-sec-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.pub-sec-head .pub-h{margin:0;}
+.pub-sec-head .btn{margin-left:auto;}
+
+/* ── Panel lateral "Detalle de caja" ──────────────────────────────────────────
+   No hay drawer genérico en el proyecto; esto sigue el patrón del sidebar móvil
+   (backdrop + aside fijo que entra deslizándose), pero desde la derecha. */
+.dcaja-fondo{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:130;}
+.dcaja{position:fixed;top:0;right:0;bottom:0;z-index:140;width:min(560px,100%);
+  background:var(--paper);border-left:1px solid var(--line);box-shadow:0 0 44px rgba(0,0,0,0.28);
+  display:flex;flex-direction:column;animation:dcaja-entra .22s ease;}
+@keyframes dcaja-entra{from{transform:translateX(100%);}to{transform:none;}}
+.dcaja-head{padding:20px 22px 14px;border-bottom:1px solid var(--line);}
+.dcaja-head h3{font-size:16px;margin:0 0 4px;}
+.dcaja-head .help{margin:0;}
+.dcaja-cuerpo{flex:1;overflow-y:auto;padding:4px 22px 22px;}
+.dcaja-pie{display:flex;gap:8px;padding:14px 22px;border-top:1px solid var(--line);background:var(--bg);}
+.dcaja-pie .btn:last-child{margin-left:auto;}
+.dcaja-sec{padding:18px 0;}
+.dcaja-sec+.dcaja-sec{border-top:1px solid var(--line);}
+.dcaja-sec h4{font-size:11px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--gray);margin:0 0 4px;}
+.dcaja-sec>.help{margin:0 0 12px;}
+.dcaja-dato{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px;}
+.dcaja-dato>svg{color:var(--gold-dark);flex-shrink:0;margin-top:3px;}
+.dcaja-dato label{margin-bottom:2px;}
+.dcaja-dato b{font-size:13.5px;}
+.dcaja-dato .chip{margin-left:auto;}
+.dcaja-lapiz{margin-left:auto;background:transparent;border:1px solid var(--line);border-radius:var(--r-2);
+  color:var(--ink2);padding:5px;line-height:0;cursor:pointer;flex-shrink:0;}
+.dcaja-lapiz:hover{border-color:var(--ink2);}
+.dcaja-rango{font-size:19px;font-weight:800;margin-bottom:10px;}
+.dcaja-rango span{font-size:12.5px;font-weight:600;color:var(--gray);}
+/* Resultados de la búsqueda de formador, dentro de su modal. */
+.dcaja-lista{max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+.dcaja-opt{text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-2);
+  padding:9px 11px;cursor:pointer;display:flex;flex-direction:column;gap:2px;}
+.dcaja-opt b{font-size:13.5px;}
+.dcaja-opt .help{margin:0;font-size:12px;}
+.dcaja-opt.on{border-color:var(--gold);background:var(--gold-soft);}
+@media(max-width:760px){
+  .dcaja{width:100%;}
+  .dcaja-head,.dcaja-cuerpo,.dcaja-pie{padding-left:16px;padding-right:16px;}
+}
+
+/* La tarjeta del organigrama ya no navega al hacer clic: ahora tiene dos botones propios
+   ("Revisar publicación" y el de candidatos), así que no debe parecer pulsable entera. */
+.plant-card{cursor:default;}
+/* Secundario y claro, para que el de candidatos se lleve el color principal. */
+.plant-revisar{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:auto;
+  padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-2);background:var(--paper);
+  color:var(--ink2);font-size:12px;font-weight:700;font-family:inherit;width:100%;cursor:pointer;}
+.plant-revisar:hover{border-color:var(--ink2);}
+.plant-card.pausada .plant-revisar{color:var(--gray);}
+/* Con los dos botones juntos, el de abajo ya no necesita empujar: lo hace el de arriba. */
+.plant-revisar+.plant-viables{margin-top:0;}
+/* El botón de candidatos pasa al color principal (antes era el azul de IA). */
+.plant-viables{border-color:#F2D089;background:var(--gold-soft);color:var(--gold-dark);}
+.plant-viables:hover{background:#F7E4B8;}
+
+/* Flechas decorativas del organigrama: sugieren que la estructura continúa arriba y abajo.
+   Sin interacción a propósito (no son botones ni reciben foco). */
+.org-linea{display:flex;align-items:center;justify-content:center;gap:5px;font-size:11.5px;
+  font-weight:700;color:var(--gray);padding:6px 0;user-select:none;}

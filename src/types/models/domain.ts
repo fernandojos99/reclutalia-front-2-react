@@ -21,6 +21,11 @@ export interface Notificacion {
 
 export interface Requisito {
   titulo: string;
+  /**
+   * Título comercial del anuncio, elegido por el formador entre las sugerencias.
+   * `titulo` sigue siendo el que puso el administrador y es el que ve el "Detalle de caja".
+   */
+  tituloPublicacion?: string;
   area: string;
   descripcion: string;
   nivelPuesto: string;
@@ -146,6 +151,29 @@ export interface PipelineEntry {
 
 export type Cambios = string | Record<string, string> | null;
 
+/** Qué se puede pedir cambiar desde "Detalle de caja". Cada tipo aplica a un campo distinto. */
+export type TipoSolicitud = "formador" | "centroCostos";
+
+/**
+ * Petición del formador que exige el visto bueno del administrador.
+ *
+ * Es un mecanismo aparte del flujo `cambios`/`cambiosReq`: aquel propone un `Requisito` entero y
+ * deja la vacante en estado `cambios`, mientras que esto son ajustes puntuales que no bloquean la
+ * edición del descriptivo — solo la publicación.
+ */
+export interface Solicitud {
+  id: string;
+  tipo: TipoSolicitud;
+  /** Valor propuesto: id de formador ("F3") o centro de costos ("514028"). */
+  valor: string;
+  /** Valor vigente al solicitar, para que el admin vea el antes y el después. */
+  valorPrevio: string;
+  estado: "pendiente" | "aprobada" | "rechazada";
+  creada: string;
+  /** Respuesta del administrador al resolverla. */
+  nota?: string;
+}
+
 export interface Vacante {
   id: string;
   estado: string;
@@ -163,6 +191,8 @@ export interface Vacante {
   cambiosDesde?: string;
   archivados: number[];
   pool?: PoolItem[];
+  /** Solicitudes al administrador (formador asignado, centro de costos). Las nuevas van al frente. */
+  solicitudes?: Solicitud[];
 }
 
 export interface CategoriaFormador {
