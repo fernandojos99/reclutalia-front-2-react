@@ -26,6 +26,11 @@ export interface Requisito {
    * `titulo` sigue siendo el que puso el administrador y es el que ve el "Detalle de caja".
    */
   tituloPublicacion?: string;
+  /**
+   * Disciplina del puesto (una de `DISCIPLINAS`), usada para acotar los catálogos del editor de
+   * Requisitos. La resuelve el backend con la IA y se guarda para no volver a preguntar.
+   */
+  disciplina?: string;
   area: string;
   descripcion: string;
   nivelPuesto: string;

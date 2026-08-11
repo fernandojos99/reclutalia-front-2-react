@@ -20,7 +20,7 @@ import { InfoTip } from "../../common/InfoTip";
 import { useData } from "../../../store/DataProvider";
 import { useDemo } from "../../../contexts/DemoContext";
 import { useBot } from "../../../contexts/BotContext";
-import { mrfn, herramientas, COMISION_SEMANAL } from "../../../constants/paqueteVacante";
+import { herramientas, COMISION_SEMANAL } from "../../../constants/paqueteVacante";
 import { money } from "../../../utils/format";
 import type { Solicitud, Vacante } from "../../../types/models/domain";
 
@@ -61,7 +61,6 @@ export function DetalleCaja({ v, onCerrar }: Props) {
   const pendiente = (tipo: Solicitud["tipo"]) =>
     (v.solicitudes ?? []).some((s) => s.estado === "pendiente" && s.tipo === tipo);
   const val = (s: string) => s?.trim() || "—";
-  const { mandato, responsabilidades, noFunciones } = mrfn(req);
 
   /** Lápiz de edición, o el aviso de que ya hay una solicitud viva sobre ese campo. */
   const lapiz = (tipo: "formador" | "centroCostos", titulo: string) =>
@@ -160,25 +159,6 @@ export function DetalleCaja({ v, onCerrar }: Props) {
                 </InfoTip>
               </li>
             </ul>
-          </Seccion>
-
-          <Seccion titulo="Perfil del puesto" desc="Mandato, responsabilidades y límites de la posición.">
-            <div className="field">
-              <label>Mandato</label>
-              <p style={{ fontSize: 13.5, margin: 0 }}>{mandato}</p>
-            </div>
-            <div className="field">
-              <label>Responsabilidades</label>
-              <ul className="ofrece-lista">
-                {responsabilidades.map((x) => <li key={x}><CheckCircle2 size={14} /><span>{x}</span></li>)}
-              </ul>
-            </div>
-            <div className="field" style={{ marginBottom: 0 }}>
-              <label>No forma parte del puesto</label>
-              <ul className="ofrece-lista">
-                {noFunciones.map((x) => <li key={x}><CheckCircle2 size={14} /><span>{x}</span></li>)}
-              </ul>
-            </div>
           </Seccion>
 
           <Seccion

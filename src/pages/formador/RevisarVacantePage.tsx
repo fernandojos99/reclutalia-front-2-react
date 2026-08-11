@@ -138,6 +138,15 @@ export function RevisarVacantePage() {
         bloqueado={bloqueado}
         onGuardar={guardarSeccion}
         onAbrirDetalle={() => setDetalle(true)}
+        // El endpoint no lanza si el modelo falla: devuelve la vacante sin `disciplina` y el
+        // editor se queda con su respaldo por área.
+        onClasificar={async () => {
+          try {
+            return (await actions.clasificarVacante(v.id)).req.disciplina;
+          } catch {
+            return undefined;
+          }
+        }}
       />
 
       {detalle && <DetalleCaja v={v} onCerrar={() => setDetalle(false)} />}
