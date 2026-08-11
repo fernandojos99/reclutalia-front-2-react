@@ -102,4 +102,102 @@ export const APTITUDES = [
 ] as const;
 export const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Disciplinas — agrupan los catálogos del editor de Requisitos
+//
+// Sin esto, editar Requisitos mostraba los cuatro catálogos enteros de golpe (25 profesiones + 22
+// especialidades + 25 hard + 12 soft) para elegir un puñado. La clasificación es ESTÁTICA a
+// propósito: es instantánea, funciona sin red y da siempre el mismo resultado, como exige el resto
+// del proyecto.
+//
+// La pertenencia es MÚLTIPLE porque muchos valores son legítimamente de más de una disciplina
+// (`SAP` es de administración y de operaciones). Un valor SIN entrada en el mapa es transversal y
+// se muestra con cualquier filtro: es el caso de "Excel avanzado" o "Comunicación efectiva", que
+// caben en todas y meterlos en un cajón de sastre sería mentir.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const DISCIPLINAS = [
+  "Tecnología y Datos", "Administración y Finanzas", "Comercial y Marketing",
+  "Operaciones e Ingeniería", "Salud y Bienestar", "Humanidades y Diseño",
+] as const;
+
+export type Disciplina = (typeof DISCIPLINAS)[number];
+
+/**
+ * Disciplina a la que pertenece cada área funcional (`AREAS`) de la vacante.
+ *
+ * Sirve para que "Sugeridas para el puesto" no se quede en dos o tres opciones: además de lo que
+ * `PERFIL_POR_AREA` marca para el área, ofrece lo de su disciplina.
+ */
+export const DISCIPLINA_DE_AREA: Record<string, Disciplina> = {
+  "Tecnología": "Tecnología y Datos",
+  "Datos y Analítica": "Tecnología y Datos",
+  "Producto": "Tecnología y Datos",
+  "Finanzas": "Administración y Finanzas",
+  "Recursos Humanos": "Administración y Finanzas",
+  "Ventas": "Comercial y Marketing",
+  "Marketing": "Comercial y Marketing",
+  "Atención a Clientes": "Comercial y Marketing",
+  "Operaciones": "Operaciones e Ingeniería",
+  "Legal": "Humanidades y Diseño",
+};
+
+/** Áreas de conocimiento (`PROFESIONES`) por disciplina. */
+export const DISC_PROFESIONES: Record<string, Disciplina[]> = {
+  "Ingeniería de Software": ["Tecnología y Datos"],
+  "Sistemas Computacionales": ["Tecnología y Datos"],
+  "Actuaría": ["Tecnología y Datos", "Administración y Finanzas"],
+  "Administración de Empresas": ["Administración y Finanzas"],
+  "Contaduría": ["Administración y Finanzas"],
+  "Economía": ["Administración y Finanzas"],
+  "Finanzas": ["Administración y Finanzas"],
+  "Recursos Humanos": ["Administración y Finanzas"],
+  "Mercadotecnia": ["Comercial y Marketing"],
+  "Ventas": ["Comercial y Marketing"],
+  "Comercio Internacional": ["Comercial y Marketing", "Operaciones e Ingeniería"],
+  "Turismo": ["Comercial y Marketing"],
+  "Ingeniería Industrial": ["Operaciones e Ingeniería"],
+  "Ingeniería Civil": ["Operaciones e Ingeniería"],
+  "Arquitectura": ["Operaciones e Ingeniería", "Humanidades y Diseño"],
+  "Química": ["Operaciones e Ingeniería", "Salud y Bienestar"],
+  "Logística": ["Operaciones e Ingeniería"],
+  "Gastronomía": ["Operaciones e Ingeniería"],
+  "Medicina": ["Salud y Bienestar"],
+  "Enfermería": ["Salud y Bienestar"],
+  "Psicología": ["Salud y Bienestar", "Administración y Finanzas"],
+  "Derecho": ["Humanidades y Diseño"],
+  "Comunicación": ["Humanidades y Diseño", "Comercial y Marketing"],
+  "Diseño Gráfico": ["Humanidades y Diseño"],
+  "Educación": ["Humanidades y Diseño"],
+};
+
+/** Áreas de experiencia (`ESPECIALIDADES`) por disciplina. */
+export const DISC_ESPECIALIDADES: Record<string, Disciplina[]> = {
+  "Desarrollo Frontend": ["Tecnología y Datos"],
+  "Desarrollo Backend": ["Tecnología y Datos"],
+  "Ciencia de Datos": ["Tecnología y Datos"],
+  "Business Intelligence": ["Tecnología y Datos", "Administración y Finanzas"],
+  "Ciberseguridad": ["Tecnología y Datos"],
+  "Infraestructura TI": ["Tecnología y Datos"],
+  "Gestión de Producto": ["Tecnología y Datos"],
+  "UX/UI": ["Tecnología y Datos", "Humanidades y Diseño"],
+  "Contabilidad": ["Administración y Finanzas"],
+  "Planeación Financiera": ["Administración y Finanzas"],
+  "Cobranza": ["Administración y Finanzas"],
+  "Atracción de Talento": ["Administración y Finanzas"],
+  "Capacitación": ["Administración y Finanzas", "Humanidades y Diseño"],
+  "Ventas B2C": ["Comercial y Marketing"],
+  "Ventas B2B": ["Comercial y Marketing"],
+  "Marketing Digital": ["Comercial y Marketing"],
+  "CRM y Fidelización": ["Comercial y Marketing"],
+  "Logística": ["Operaciones e Ingeniería"],
+  "Cadena de Suministro": ["Operaciones e Ingeniería"],
+  "Servicio al Cliente": ["Operaciones e Ingeniería", "Comercial y Marketing"],
+  "Derecho Corporativo": ["Humanidades y Diseño"],
+  "Cumplimiento (Compliance)": ["Humanidades y Diseño", "Administración y Finanzas"],
+};
+
+// Las habilidades técnicas y blandas NO se agrupan por disciplina: `skillsSugeridas()` ya las
+// cruza con el área y el título y deja entre 4 y 8, un número que no necesita filtro.
+
 export const DIRECCION_CORP = "Av. Insurgentes Sur 3579, Tlalpan, 14000 Ciudad de México, CDMX";

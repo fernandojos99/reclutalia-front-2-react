@@ -14,6 +14,7 @@
  */
 import {
   CIUDADES, EDUCACION, ESPECIALIDADES, HARD_SKILLS, MODALIDADES, PROFESIONES, SOFT_SKILLS, TURNOS,
+  type Disciplina,
 } from "../constants/catalogos";
 import type { Requisito } from "../types/models/domain";
 
@@ -74,22 +75,36 @@ export const PERFIL_AREA_DEFAULT: PerfilArea = {
 };
 
 /**
- * Áreas de conocimiento y de experiencia para el editor de Requisitos.
+ * Áreas de conocimiento y de experiencia acordes al puesto.
  *
- * A diferencia de las habilidades, aquí NO se recorta el catálogo: los topes (3 y 5) ya limitan
- * cuánto se puede elegir, y esconder opciones obligaría a "ver catálogo completo" para algo que
- * cabe en pantalla. Lo que sí se hace es subir al frente lo predeterminado para el puesto.
+ * Devuelve SOLO lo predeterminado del área más lo ya elegido. Antes añadía detrás el catálogo
+ * entero —25 profesiones y 22 especialidades— y el editor se volvía inmanejable; ahora el resto
+ * se alcanza con el filtro por disciplina (`porDisciplina`).
  */
 export function areasSugeridas(req: Requisito): { areas: string[]; esp: string[] } {
   const base = PERFIL_POR_AREA[req.area] ?? PERFIL_AREA_DEFAULT;
-  const alFrente = (catalogo: readonly string[], previas: string[], elegidas: string[]): string[] => {
-    const arriba = ordenar(catalogo, [...new Set([...previas, ...elegidas])]);
-    return [...arriba, ...catalogo.filter((x) => !arriba.includes(x))];
-  };
   return {
-    areas: alFrente(PROFESIONES, base.areasConocimiento, req.areasConocimiento),
-    esp: alFrente(ESPECIALIDADES, base.espRequeridas, req.espRequeridas),
+    areas: ordenar(PROFESIONES, [...new Set([...base.areasConocimiento, ...req.areasConocimiento])]),
+    esp: ordenar(ESPECIALIDADES, [...new Set([...base.espRequeridas, ...req.espRequeridas])]),
   };
+}
+
+/**
+ * Valores de un catálogo que pertenecen a una disciplina.
+ *
+ * Dos reglas que no se pueden saltar:
+ *  · lo que NO está en el mapa es transversal y sale con cualquier disciplina;
+ *  · lo ya elegido sale siempre, filtre lo que filtre — esconder un tag seleccionado lo haría
+ *    parecer borrado.
+ */
+export function porDisciplina(
+  catalogo: readonly string[],
+  mapa: Record<string, Disciplina[]>,
+  disciplina: Disciplina,
+  elegidas: string[],
+): string[] {
+  const dentro = catalogo.filter((x) => !mapa[x] || mapa[x].includes(disciplina));
+  return ordenar(catalogo, [...new Set([...dentro, ...elegidas])]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,29 +139,72 @@ const SOFT_POR_AREA: Record<string, string[]> = {
   Producto: ["Comunicación efectiva", "Pensamiento analítico", "Liderazgo", "Adaptabilidad"],
 };
 
-/** Palabras del título del puesto que arrastran habilidades extra. */
-const POR_TITULO: { clave: string; hard: string[]; soft: string[] }[] = [
+/**
+ * Palabras del título del puesto que arrastran habilidades extra y, cuando la palabra lo permite,
+ * la disciplina del puesto.
+ *
+ * `disc` es OPCIONAL a propósito: "supervisor", "gerente", "jefe" o "coordinador" dicen el nivel
+ * jerárquico, no de qué va el puesto, y clasificar por ellas sería inventar. Un título que solo
+ * traiga palabras de jerarquía cae al respaldo (la IA, y tras ella el área funcional).
+ *
+ * El orden importa: gana la primera entrada con `disc` que aparezca en el título, así que las claves
+ * específicas van antes que las genéricas.
+ */
+const POR_TITULO: { clave: string; hard: string[]; soft: string[]; disc?: Disciplina }[] = [
   { clave: "supervis", hard: ["Excel avanzado"], soft: ["Liderazgo", "Resolución de conflictos", "Gestión del tiempo"] },
   { clave: "gerente", hard: ["Excel avanzado"], soft: ["Liderazgo", "Orientación a resultados", "Gestión del tiempo"] },
   { clave: "jefe", hard: [], soft: ["Liderazgo", "Resolución de conflictos"] },
   { clave: "coordinador", hard: ["Excel avanzado"], soft: ["Gestión del tiempo", "Liderazgo"] },
-  { clave: "caj", hard: ["Excel avanzado"], soft: ["Atención al detalle", "Empatía"] },
-  { clave: "front", hard: ["React", "Figma"], soft: ["Atención al detalle"] },
-  { clave: "back", hard: ["Node.js", "SQL", "Python"], soft: ["Pensamiento analítico"] },
-  { clave: "desarroll", hard: ["React", "Node.js", "SQL", "Scrum"], soft: ["Trabajo en equipo"] },
-  { clave: "analista", hard: ["SQL", "Excel avanzado", "Power BI"], soft: ["Pensamiento analítico"] },
-  { clave: "dato", hard: ["SQL", "Python", "Power BI"], soft: ["Pensamiento analítico"] },
-  { clave: "vent", hard: ["CRM", "Negociación comercial", "Prospección en frío"], soft: ["Negociación", "Orientación a resultados"] },
-  { clave: "comercial", hard: ["CRM", "Negociación comercial"], soft: ["Negociación", "Comunicación efectiva"] },
-  { clave: "soporte", hard: ["Zendesk", "CRM"], soft: ["Empatía", "Adaptabilidad"] },
-  { clave: "servicio", hard: ["Zendesk", "CRM"], soft: ["Empatía", "Comunicación efectiva"] },
-  { clave: "contab", hard: ["Contabilidad NIF", "Excel avanzado", "SAP"], soft: ["Atención al detalle"] },
-  { clave: "financ", hard: ["Modelado financiero", "Excel avanzado"], soft: ["Pensamiento analítico"] },
-  { clave: "reclut", hard: ["LMS", "Excel avanzado"], soft: ["Empatía", "Comunicación efectiva"] },
-  { clave: "nomina", hard: ["Nómina", "Excel avanzado"], soft: ["Atención al detalle"] },
-  { clave: "market", hard: ["Google Ads", "Meta Ads", "SEO"], soft: ["Proactividad"] },
-  { clave: "disen", hard: ["Figma"], soft: ["Atención al detalle"] }, // `norm` ya quitó la ñ
+  { clave: "front", hard: ["React", "Figma"], soft: ["Atención al detalle"], disc: "Tecnología y Datos" },
+  { clave: "back", hard: ["Node.js", "SQL", "Python"], soft: ["Pensamiento analítico"], disc: "Tecnología y Datos" },
+  { clave: "desarroll", hard: ["React", "Node.js", "SQL", "Scrum"], soft: ["Trabajo en equipo"], disc: "Tecnología y Datos" },
+  { clave: "dato", hard: ["SQL", "Python", "Power BI"], soft: ["Pensamiento analítico"], disc: "Tecnología y Datos" },
+  { clave: "analista", hard: ["SQL", "Excel avanzado", "Power BI"], soft: ["Pensamiento analítico"], disc: "Tecnología y Datos" },
+  { clave: "caj", hard: ["Excel avanzado"], soft: ["Atención al detalle", "Empatía"], disc: "Administración y Finanzas" },
+  { clave: "contab", hard: ["Contabilidad NIF", "Excel avanzado", "SAP"], soft: ["Atención al detalle"], disc: "Administración y Finanzas" },
+  { clave: "financ", hard: ["Modelado financiero", "Excel avanzado"], soft: ["Pensamiento analítico"], disc: "Administración y Finanzas" },
+  { clave: "reclut", hard: ["LMS", "Excel avanzado"], soft: ["Empatía", "Comunicación efectiva"], disc: "Administración y Finanzas" },
+  { clave: "nomina", hard: ["Nómina", "Excel avanzado"], soft: ["Atención al detalle"], disc: "Administración y Finanzas" },
+  { clave: "vent", hard: ["CRM", "Negociación comercial", "Prospección en frío"], soft: ["Negociación", "Orientación a resultados"], disc: "Comercial y Marketing" },
+  { clave: "comercial", hard: ["CRM", "Negociación comercial"], soft: ["Negociación", "Comunicación efectiva"], disc: "Comercial y Marketing" },
+  { clave: "market", hard: ["Google Ads", "Meta Ads", "SEO"], soft: ["Proactividad"], disc: "Comercial y Marketing" },
+  { clave: "soporte", hard: ["Zendesk", "CRM"], soft: ["Empatía", "Adaptabilidad"], disc: "Comercial y Marketing" },
+  { clave: "servicio", hard: ["Zendesk", "CRM"], soft: ["Empatía", "Comunicación efectiva"], disc: "Comercial y Marketing" },
+  { clave: "disen", hard: ["Figma"], soft: ["Atención al detalle"], disc: "Humanidades y Diseño" }, // `norm` ya quitó la ñ
+  // Sin habilidades propias: existen solo para clasificar títulos frecuentes del catálogo.
+  { clave: "atencion a client", hard: [], soft: [], disc: "Comercial y Marketing" },
+  { clave: "logistic", hard: [], soft: [], disc: "Operaciones e Ingeniería" },
+  { clave: "almacen", hard: [], soft: [], disc: "Operaciones e Ingeniería" },
+  { clave: "operacion", hard: [], soft: [], disc: "Operaciones e Ingeniería" },
+  { clave: "ingenier", hard: [], soft: [], disc: "Operaciones e Ingeniería" },
+  { clave: "manteni", hard: [], soft: [], disc: "Operaciones e Ingeniería" },
+  { clave: "produccion", hard: [], soft: [], disc: "Operaciones e Ingeniería" },
+  { clave: "arquitect", hard: [], soft: [], disc: "Operaciones e Ingeniería" },
+  { clave: "cobranza", hard: [], soft: [], disc: "Administración y Finanzas" },
+  { clave: "auditor", hard: [], soft: [], disc: "Administración y Finanzas" },
+  { clave: "administra", hard: [], soft: [], disc: "Administración y Finanzas" },
+  { clave: "sistemas", hard: [], soft: [], disc: "Tecnología y Datos" },
+  { clave: "software", hard: [], soft: [], disc: "Tecnología y Datos" },
+  { clave: "seguridad de la informacion", hard: [], soft: [], disc: "Tecnología y Datos" },
+  { clave: "medic", hard: [], soft: [], disc: "Salud y Bienestar" },
+  { clave: "enfermer", hard: [], soft: [], disc: "Salud y Bienestar" },
+  { clave: "psicolog", hard: [], soft: [], disc: "Salud y Bienestar" },
+  { clave: "nutri", hard: [], soft: [], disc: "Salud y Bienestar" },
+  { clave: "legal", hard: [], soft: [], disc: "Humanidades y Diseño" },
+  { clave: "abogad", hard: [], soft: [], disc: "Humanidades y Diseño" },
+  { clave: "juridic", hard: [], soft: [], disc: "Humanidades y Diseño" },
+  { clave: "comunicac", hard: [], soft: [], disc: "Humanidades y Diseño" },
+  { clave: "capacita", hard: [], soft: [], disc: "Humanidades y Diseño" },
 ];
+
+/**
+ * Disciplina deducida del título, sin red. Es el primer eslabón de la cadena: solo cuando esto
+ * devuelve `undefined` se molesta a la IA del backend.
+ */
+export function disciplinaDeTitulo(titulo: string): Disciplina | undefined {
+  const t = norm(titulo);
+  return POR_TITULO.find((x) => x.disc && t.includes(x.clave))?.disc;
+}
 
 /**
  * Habilidades del catálogo que van acorde al puesto. Nunca oculta lo que ya está elegido

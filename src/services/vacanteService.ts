@@ -40,6 +40,11 @@ export const vacanteService = {
     return apiClient.post<Vacante>(`/vacantes/${vacId}/aprobar`);
   },
 
+  /** Clasifica el puesto con la IA. Nunca falla por culpa del modelo: devuelve la vacante igual. */
+  clasificar(vacId: string): Promise<Vacante> {
+    return apiClient.post<Vacante>(`/vacantes/${vacId}/clasificar`);
+  },
+
   crearSolicitud(vacId: string, tipo: TipoSolicitud, valor: string): Promise<Vacante> {
     return apiClient.post<Vacante>(`/vacantes/${vacId}/solicitudes`, { tipo, valor });
   },

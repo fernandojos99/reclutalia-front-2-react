@@ -91,7 +91,9 @@
   /* Compactar identidad: el avatar sigue abriendo "Editar perfil" al tocarlo. */
   .tb-identity-text,.tb-edit{display:none;}
 }
-.modal-bg{position:fixed;inset:0;background:var(--overlay);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+/* z-index 150: por encima de los dos paneles laterales (`.side` 120, `.dcaja` 140) y por debajo del
+   toast (200). Un modal abierto DESDE un panel tiene que taparlo, no quedarse detrás. */
+.modal-bg{position:fixed;inset:0;background:var(--overlay);z-index:150;display:flex;align-items:center;justify-content:center;padding:20px;}
 .modal{background:var(--paper);color:var(--ink);border-radius:var(--r-4);max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:24px;position:relative;box-shadow:var(--shadow-modal);}
 .modal.wide{max-width:860px;}
 .xclose{position:absolute;top:14px;right:14px;background:var(--bg);border:none;border-radius:var(--r-1);width:30px;height:30px;display:flex;align-items:center;justify-content:center;color:var(--gray);}
@@ -433,8 +435,9 @@ img.avatar{object-fit:cover;}
 .fila-info-extra{font-size:12.5px;font-weight:700;color:var(--gold-dark);white-space:nowrap;}
 
 .infotip{position:relative;display:inline-flex;flex-shrink:0;}
-.infotip-btn{display:inline-flex;align-items:center;justify-content:center;padding:2px;border:none;background:none;color:var(--gray);border-radius:var(--r-pill);line-height:0;}
+.infotip-btn{display:inline-flex;align-items:center;justify-content:center;padding:2px;border:none;background:none;color:var(--gray);border-radius:var(--r-pill);line-height:0;transition:transform .15s ease,color .15s ease;}
 .infotip-btn:hover,.infotip-btn.on{color:var(--ai);}
+.infotip-btn.on{transform:rotate(180deg);}
 .infotip-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
 /* El panel se ancla a la derecha del icono para no salirse por el borde de la tarjeta. */
 .infotip-panel{position:absolute;right:0;bottom:calc(100% + 8px);z-index:90;width:max-content;max-width:min(320px,72vw);padding:10px 12px;border-radius:var(--r-2);background:var(--ink);color:var(--paper);font-size:12.5px;font-weight:400;line-height:1.5;text-align:left;box-shadow:var(--shadow-modal);}
@@ -442,7 +445,16 @@ img.avatar{object-fit:cover;}
 .infotip-panel li{margin-bottom:4px;}
 .infotip-panel li:last-child{margin-bottom:0;}
 .infotip-panel p{margin:0;}
-@media(max-width:560px){.infotip-panel{max-width:min(260px,80vw);}}
+/* El panel se centra en el "Detalle de caja" a la altura del disparador, en vez de pegarse al borde
+   derecho. `top`, `left` y `transform` los pone InfoTip.tsx tras medir el botón y su contenedor:
+   con `fixed` el navegador ya no puede anclarlo solo. */
+.infotip-panel.flotante{position:fixed;right:auto;bottom:auto;width:min(340px,92vw);max-width:none;}
+@media(max-width:560px){.infotip-panel:not(.flotante){max-width:min(260px,80vw);}}
+
+/* Enlace de texto dentro de un formulario ("Ver todas"). Discreto: no compite con los botones. */
+.linkish{background:none;border:none;padding:4px 0 0;font-size:12px;font-weight:600;
+  color:var(--ai);text-decoration:underline;text-underline-offset:2px;}
+.linkish:hover{color:var(--ink);}
 
 /* ── Ítem desplegable genérico (flecha invertida) ── */
 .desp{border:1px solid var(--line);border-radius:var(--r-2);background:var(--paper);overflow:hidden;}
@@ -615,3 +627,8 @@ img.avatar{object-fit:cover;}
    Sin interacción a propósito (no son botones ni reciben foco). */
 .org-linea{display:flex;align-items:center;justify-content:center;gap:5px;font-size:11.5px;
   font-weight:700;color:var(--gray);padding:6px 0;user-select:none;}
+
+/* Campo con un valor que no se acepta. Se marca en vez de corregirlo solo: autocorregir mientras
+   se teclea impide llegar a un valor válido pasando por estados intermedios. */
+.rk .input-err,.rk .input-err:focus{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad-soft);}
+.pub-edit-hint.err{color:#FFB4AE;}

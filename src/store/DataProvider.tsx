@@ -36,6 +36,8 @@ interface Actions {
   editarVacante: (vacId: string, req: Requisito, rechazados?: string[], nota?: string) => Promise<Vacante>;
   crearVacante: (req: Requisito, formadorId: string) => Promise<Vacante>;
   solicitarMas: (vacId: string, multiposting: boolean) => Promise<Vacante>;
+  /** Clasifica el puesto en una disciplina (acota los catálogos del editor de Requisitos). */
+  clasificarVacante: (vacId: string) => Promise<Vacante>;
   /** Solicitudes al admin desde "Detalle de caja" (formador asignado, centro de costos). */
   crearSolicitud: (vacId: string, tipo: TipoSolicitud, valor: string) => Promise<Vacante>;
   resolverSolicitud: (vacId: string, solId: string, aprobar: boolean, nota?: string) => Promise<Vacante>;
@@ -147,6 +149,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     editarVacante: (id, req, rech, nota) => runVac(() => vacanteService.editar(id, req, rech, nota)),
     crearVacante: (req, fid) => runVac(() => vacanteService.crear(req, fid)),
     solicitarMas: (id, mp) => runVac(() => vacanteService.solicitarMasCandidatos(id, mp)),
+    clasificarVacante: (id) => runVac(() => vacanteService.clasificar(id)),
     crearSolicitud: (id, tipo, valor) => runVac(() => vacanteService.crearSolicitud(id, tipo, valor)),
     resolverSolicitud: (id, sid, ap, nota) => runVac(() => vacanteService.resolverSolicitud(id, sid, ap, nota)),
     invitar: (id, cid, m) => runVac(() => pipelineService.invitar(id, cid, m)),

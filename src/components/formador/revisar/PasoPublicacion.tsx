@@ -24,7 +24,11 @@ import {
   recortarDescripcion, leerObjetivo, escribirObjetivo, leerFunciones, escribirFunciones,
 } from "../../../utils/publicacion";
 import { titulosSugeridos } from "../../../utils/tituloIA";
-import { CIUDADES, MODALIDADES, TIPOS_VACANTE, TURNOS, TURNO_PERSONALIZADO } from "../../../constants/catalogos";
+import { disciplinaDeTitulo } from "../../../utils/perfilIA";
+import {
+  CIUDADES, DISCIPLINAS, DISCIPLINA_DE_AREA, MODALIDADES, TIPOS_VACANTE, TURNOS,
+  TURNO_PERSONALIZADO, type Disciplina,
+} from "../../../constants/catalogos";
 import { money } from "../../../utils/format";
 import type { Requisito } from "../../../types/models/domain";
 
@@ -66,17 +70,36 @@ interface Props {
   /** Persiste la sección editada. Debe resolver antes de que se cierre la edición. */
   onGuardar: (r: Requisito) => Promise<void>;
   onAbrirDetalle: () => void;
+  /** Pide al backend que la IA clasifique el puesto. Devuelve la disciplina, o nada si falló. */
+  onClasificar?: () => Promise<string | undefined>;
   /** Con cambios pendientes ante el admin no se edita nada: se resolverían en falso. */
   bloqueado?: boolean;
 }
 
-export function PasoPublicacion({ req, destacados, acciones, onGuardar, onAbrirDetalle, bloqueado = false }: Props) {
+/** Etiqueta válida o nada: lo que venga de la red o de la BD no se cree sin comprobar. */
+const comoDisciplina = (x?: string): Disciplina | undefined => DISCIPLINAS.find((d) => d === x);
+
+export function PasoPublicacion({
+  req, destacados, acciones, onGuardar, onAbrirDetalle, onClasificar, bloqueado = false,
+}: Props) {
   const [editando, setEditando] = useState<Seccion | null>(null);
   const [borrador, setBorrador] = useState<Requisito | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [explicando, setExplicando] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  /**
+   * El sueldo se teclea como texto, aparte del borrador.
+   *
+   * Hace falta porque escribir un importe pasa por estados intermedios inválidos ("1", "12", "120"):
+   * si el input leyera del borrador y este solo aceptara valores dentro del rango, cada tecla
+   * revertiría lo escrito.
+   */
+  const [sueldoTxt, setSueldoTxt] = useState("");
+  /** Disciplina que devolvió la IA en esta sesión; `req.disciplina` ya la trae si se guardó antes. */
+  const [discIA, setDiscIA] = useState<Disciplina | undefined>();
+  const [clasificando, setClasificando] = useState(false);
+  const [preguntado, setPreguntado] = useState(false);
 
   // El borrador es una copia completa del requisito, así que las secciones que no se están
   // editando se pintan igual desde él y la vista previa refleja los cambios al vuelo.
@@ -85,7 +108,40 @@ export function PasoPublicacion({ req, destacados, acciones, onGuardar, onAbrirD
   const objetivo = leerObjetivo(r.descripcion);
   const funciones = leerFunciones(r.descripcion);
 
-  const abrir = (s: Seccion) => { setBorrador({ ...req }); setEditando(s); };
+  // Solo bloquea al editar la caja oscura; en las otras secciones el sueldo ni se toca.
+  const sueldoValido = editando !== "hero"
+    || (/^\d+$/.test(sueldoTxt) && Number(sueldoTxt) >= req.salarioMin && Number(sueldoTxt) <= req.salarioMax);
+
+  /**
+   * Disciplina del puesto, por orden de coste: diccionario de títulos (gratis) → lo que la IA ya
+   * clasificó y quedó guardado → lo que acaba de contestar → el área funcional como respaldo.
+   * Si nada responde, `SkillsEditor` enseña el catálogo completo.
+   */
+  const disciplina: Disciplina | undefined =
+    disciplinaDeTitulo(req.titulo)
+    ?? comoDisciplina(req.disciplina)
+    ?? discIA
+    ?? comoDisciplina(DISCIPLINA_DE_AREA[req.area]);
+
+  /** Solo se molesta al modelo si ni el título ni la BD dan la respuesta, y una única vez. */
+  const asegurarDisciplina = async () => {
+    if (preguntado || !onClasificar) return;
+    if (disciplinaDeTitulo(req.titulo) || comoDisciplina(req.disciplina)) return;
+    setPreguntado(true);
+    setClasificando(true);
+    try {
+      setDiscIA(comoDisciplina(await onClasificar()));
+    } finally {
+      setClasificando(false);
+    }
+  };
+
+  const abrir = (s: Seccion) => {
+    setBorrador({ ...req });
+    setSueldoTxt(String(sueldoMensual(req)));
+    setEditando(s);
+    if (s === "requisitos") void asegurarDisciplina();
+  };
   const cerrar = () => { setEditando(null); setBorrador(null); setConfirmando(false); };
   const pedirCancelar = () => (sucio ? setConfirmando(true) : cerrar());
   const cambiar = (cambios: Partial<Requisito>) => setBorrador((b) => (b ? { ...b, ...cambios } : b));
@@ -176,13 +232,39 @@ export function PasoPublicacion({ req, destacados, acciones, onGuardar, onAbrirD
 
             <div className="field">
               <label>Sueldo mensual bruto</label>
-              <input type="number" value={sueldoMensual(r)} min={r.salarioMin} max={r.salarioMax} step={500}
+              {/* Texto y no número acotado: antes se recortaba al rango en cada tecla, así que
+                  borrar un cero de "12000" daba "1200", caía bajo el mínimo y saltaba a él. Era
+                  imposible teclear un importe nuevo. Ahora se respeta lo escrito y solo se avisa;
+                  el rango lo defiende "Guardar", que se deshabilita mientras no cuadre. */}
+              <input type="text" inputMode="numeric" value={sueldoTxt}
+                className={sueldoValido ? undefined : "input-err"}
+                aria-invalid={!sueldoValido}
                 onChange={(e) => {
-                  // Acotado al rango aprobado: fuera de él, el paquete de compensación deja de cuadrar.
-                  const n = Number(e.target.value);
-                  cambiar({ sueldo: Math.min(r.salarioMax, Math.max(r.salarioMin, Number.isFinite(n) ? n : r.salarioMin)) });
+                  const txt = e.target.value.replace(/[^\d]/g, "");
+                  setSueldoTxt(txt);
+                  const n = Number(txt);
+                  if (txt && n >= r.salarioMin && n <= r.salarioMax) cambiar({ sueldo: n });
                 }} />
-              <div className="pub-edit-hint">Rango aprobado: {money(r.salarioMin)} – {money(r.salarioMax)}</div>
+              <div className={"pub-edit-hint" + (sueldoValido ? "" : " err")}>
+                {sueldoValido
+                  ? `Rango aprobado: ${money(r.salarioMin)} – ${money(r.salarioMax)}`
+                  : `Fuera del rango aprobado (${money(r.salarioMin)} – ${money(r.salarioMax)})`}
+              </div>
+            </div>
+
+            <div className="field">
+              <label>Experiencia mínima</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <input type="number" min={0} max={40} step={1} style={{ maxWidth: 110 }}
+                  value={r.anosExp} disabled={r.expNoRelevante}
+                  onChange={(e) => cambiar({ anosExp: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} />
+                <span className="pub-edit-hint" style={{ margin: 0 }}>años</span>
+                <label className="chk-inline pub-auto" style={{ marginLeft: 4 }}>
+                  <input type="checkbox" checked={r.expNoRelevante}
+                    onChange={(e) => cambiar({ expNoRelevante: e.target.checked })} />
+                  {" "}La experiencia no es relevante para este puesto
+                </label>
+              </div>
             </div>
 
             <div className="field">
@@ -249,7 +331,9 @@ export function PasoPublicacion({ req, destacados, acciones, onGuardar, onAbrirD
             </div>
 
             {accionesSeccion(
-              <button type="button" className="btn gold" disabled={guardando} onClick={() => void guardar()}>
+              <button type="button" className="btn gold" disabled={guardando || !sueldoValido}
+                title={sueldoValido ? undefined : "El sueldo está fuera del rango aprobado"}
+                onClick={() => void guardar()}>
                 {guardando ? "Guardando…" : "Guardar"}
               </button>,
             )}
@@ -296,7 +380,8 @@ export function PasoPublicacion({ req, destacados, acciones, onGuardar, onAbrirD
           {cabecera("Requisitos", "requisitos")}
           {editando === "requisitos" ? (
             <>
-              <SkillsEditor req={r} onCambiarReq={(nr) => setBorrador(nr)} />
+              <SkillsEditor req={r} onCambiarReq={(nr) => setBorrador(nr)}
+                disciplina={disciplina} clasificando={clasificando} />
               {accionesSeccion(
                 <button type="button" className="btn gold" disabled={guardando} onClick={() => void guardar()}>
                   {guardando ? "Guardando…" : "Guardar"}
