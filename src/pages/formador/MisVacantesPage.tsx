@@ -2,6 +2,10 @@
  * Inicio del formador: stats + una sola vista a la vez, alternada con el botón de la cabecera.
  * Arranca en "Plantilla de tu equipo" (lo que se consulta a diario) y el avance de las vacantes
  * queda detrás del toggle "Progreso".
+ *
+ * Las dos vistas NO listan lo mismo a propósito: la plantilla es la foto del equipo vivo (lo que
+ * sigue a tu cargo), mientras que progreso es el histórico completo, cerradas incluidas, para poder
+ * entrar a revisar un proceso que ya terminó.
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +17,7 @@ import { FasesBar } from "../../components/common/FasesBar";
 import { PlantillaCards } from "../../components/formador/PlantillaCards";
 import { candidatoElegido } from "../../utils/fases";
 import { diasActivaLabel } from "../../utils/format";
-import { PIPE_IDX } from "../../constants/catalogos";
+import type { Vacante } from "../../types/models/domain";
 
 /**
  * Vista elegida la última vez. Vive en el módulo, no en el componente: la página se desmonta al
@@ -22,11 +26,21 @@ import { PIPE_IDX } from "../../constants/catalogos";
  */
 let vistaRecordada: "plantilla" | "progreso" = "plantilla";
 
+/** Tamaño de la plantilla del equipo. Dato de demo: no se deriva de las vacantes. */
+const PLANTILLA_TOTAL = 10;
+
+/** Pendientes por cubrir: las que todavía no salieron a buscar candidatos. */
+const esAsignada = (v: Vacante) => v.estado === "asignada" || v.estado === "cambios";
+/** Publicadas y buscando candidatos. */
+const esPublicada = (v: Vacante) => v.estado === "abierta";
+
+type Filtro = "todas" | "asignadas" | "publicadas";
+
 export function MisVacantesPage() {
   const { formadorId } = useDemo();
   const { vacantes, formadores, loading } = useData();
   const navigate = useNavigate();
-  const [soloCompletadas, setSoloCompletadas] = useState(false);
+  const [filtro, setFiltro] = useState<Filtro>("todas");
   const [vista, setVistaState] = useState<"plantilla" | "progreso">(vistaRecordada);
   const setVista = (v: "plantilla" | "progreso") => { vistaRecordada = v; setVistaState(v); };
 
@@ -34,42 +48,52 @@ export function MisVacantesPage() {
 
   const mias = vacantes.filter((v) => v.formadorId === formadorId);
   const formador = formadores.find((f) => f.id === formadorId);
-  const completadas = mias.filter((v) => v.estado === "cerrada").length;
-  const activos = mias.reduce(
-    (a, v) => a + Object.values(v.pipeline).filter((p) => (PIPE_IDX[p.estado] ?? -1) >= 0 && p.estado !== "contratado").length,
-    0,
-  );
-  const listadas = mias.filter((v) => !soloCompletadas || v.estado === "cerrada");
+  const asignadas = mias.filter(esAsignada);
+  const publicadas = mias.filter(esPublicada);
 
   const enPlantilla = vista === "plantilla";
+  // La plantilla es el equipo vivo: una posición cerrada ya está cubierta y no cuelga del árbol.
+  const base = enPlantilla ? mias.filter((v) => v.estado !== "cerrada") : mias;
+  const listadas = filtro === "asignadas" ? base.filter(esAsignada)
+    : filtro === "publicadas" ? base.filter(esPublicada)
+      : base;
+
   const titulo = enPlantilla
     ? "Plantilla de tu equipo"
-    : soloCompletadas ? "Histórico de vacantes completadas" : "Tus vacantes y su avance en el proceso";
+    : filtro === "asignadas" ? "Vacantes asignadas pendientes por cubrir"
+      : filtro === "publicadas" ? "Vacantes publicadas y buscando candidatos"
+        : "Tus vacantes y su avance en el proceso";
 
-  // El histórico de completadas filtra la LISTA de vacantes: si se pide desde la plantilla,
-  // hay que saltar a la vista de progreso o el clic no tendría ningún efecto visible.
-  const verCompletadas = () => { setSoloCompletadas((s) => !s); setVista("progreso"); };
+  /** Las cajas alternan su filtro; volver a pulsar la activa lo quita. */
+  const alternar = (f: Filtro) => setFiltro((x) => (x === f ? "todas" : f));
 
   return (
     <div>
       <div className="grid3" style={{ marginBottom: 18 }}>
-        <div className="stat"><b>{mias.filter((v) => v.estado !== "cerrada").length}</b><span>Vacantes activas a tu cargo</span></div>
-        <div className="stat"><b>{activos}</b><span>Candidatos en proceso</span></div>
+        <div className="stat"><b>{PLANTILLA_TOTAL}</b><span>Plantilla total</span></div>
         <div
-          className={"stat" + (soloCompletadas ? " stat-on" : "")}
-          onClick={completadas ? verCompletadas : undefined}
-          style={{ cursor: completadas ? "pointer" : "default" }}
-          title={completadas ? "Ver histórico de vacantes completadas" : undefined}
+          className={"stat" + (filtro === "asignadas" ? " stat-on" : "")}
+          onClick={() => alternar("asignadas")}
+          style={{ cursor: "pointer" }}
+          title="Ver solo las vacantes pendientes por cubrir"
         >
-          <b style={{ color: completadas ? "var(--ok)" : "inherit" }}>{completadas}</b><span>Vacantes completadas</span>
+          <b>{asignadas.length}</b><span>Vacantes asignadas</span>
+        </div>
+        <div
+          className={"stat" + (filtro === "publicadas" ? " stat-on" : "")}
+          onClick={() => alternar("publicadas")}
+          style={{ cursor: "pointer" }}
+          title="Ver solo las vacantes publicadas y buscando candidatos"
+        >
+          <b style={{ color: publicadas.length ? "var(--ok)" : "inherit" }}>{publicadas.length}</b>
+          <span>Vacantes publicadas</span>
         </div>
       </div>
 
-
       <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "4px 0 12px", flexWrap: "wrap" }}>
         <h3 style={{ fontSize: 15 }}>{titulo}</h3>
-        {enPlantilla && <span className="help" style={{ margin: 0 }}>Toca una posición para revisarla y publicarla.</span>}
-        {!enPlantilla && soloCompletadas && <button className="btn ghost sm" onClick={() => setSoloCompletadas(false)}>Ver todas</button>}
+        {enPlantilla && filtro === "todas" && <span className="help" style={{ margin: 0 }}>Toca una posición para revisarla y publicarla.</span>}
+        {filtro !== "todas" && <button className="btn ghost sm" onClick={() => setFiltro("todas")}>Ver todas</button>}
         <button
           className="btn ghost sm"
           style={{ marginLeft: "auto" }}
@@ -81,11 +105,11 @@ export function MisVacantesPage() {
       </div>
 
       {enPlantilla ? (
-        mias.length ? (
-          <PlantillaCards vacantes={mias} formador={formador} />
+        listadas.length ? (
+          <PlantillaCards vacantes={listadas} formador={formador} />
         ) : (
           <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
-            El administrador aún no te asigna vacantes.
+            {filtro === "todas" ? "El administrador aún no te asigna vacantes." : "Ninguna vacante coincide con ese filtro."}
           </div>
         )
       ) : (
@@ -96,7 +120,7 @@ export function MisVacantesPage() {
               <div className={"card" + (v.estado === "cerrada" ? " ok" : "")} key={v.id} style={{ marginBottom: 14, cursor: "pointer" }}
                 onClick={() => navigate(`/formador/vacante/${v.id}`)}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <b style={{ fontSize: 15 }}>{v.req.titulo}</b><Chip>{v.id}</Chip>
+                  <b style={{ fontSize: 15 }}>{v.req.tituloPublicacion || v.req.titulo}</b><Chip>{v.id}</Chip>
                   {v.estado === "asignada" && <Chip tone="gold" icon={AlertCircle}>Requiere tu revisión</Chip>}
                   {v.estado === "cambios" && <Chip icon={Clock}>Esperando al admin</Chip>}
                   {v.estado === "abierta" && (candidatoElegido(v) ? <Chip tone="ok" icon={CheckCircle2}>Candidato elegido</Chip> : <Chip tone="ok">Búsqueda activa</Chip>)}
@@ -111,7 +135,7 @@ export function MisVacantesPage() {
           })}
           {!listadas.length && (
             <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
-              {soloCompletadas ? "Aún no tienes vacantes completadas." : "El administrador aún no te asigna vacantes."}
+              {filtro === "todas" ? "El administrador aún no te asigna vacantes." : "Ninguna vacante coincide con ese filtro."}
             </div>
           )}
         </>

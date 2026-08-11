@@ -215,6 +215,40 @@ export const BENEFICIOS: Item[] = [
   },
 ];
 
+/** Comisión semanal que se publica en el anuncio y en el detalle de caja. */
+export const COMISION_SEMANAL = 1200;
+
+/**
+ * "Lo que ofrecemos" del anuncio: lista FIJA, igual para todas las vacantes.
+ *
+ * Antes se derivaba de `bonos(req)` + `BENEFICIOS`, así que cada vacante ofrecía cosas distintas
+ * según su requisito. Estos son los beneficios institucionales, que no dependen del puesto.
+ */
+export const OFRECEMOS: { titulo: string; detalle?: string }[] = [
+  { titulo: "Comisiones semanales" },
+  { titulo: "Prestaciones de ley" },
+  { titulo: "Seguro de vida" },
+  { titulo: "IMSS" },
+  {
+    titulo: "Beneficios financieros",
+    detalle:
+      "Adelanto de nómina, tarjeta de crédito, descuentos desde el 10 % en Elektra y Salinas & Rocha, " +
+      "crédito personal con tasa preferencial, cambio de divisas, cuentas de inversión y caja de ahorro.",
+  },
+  {
+    titulo: "Servicios",
+    detalle:
+      "Nutriólogo, psicólogo, odontólogo y biblioteca, programas de salud y acompañamiento en tus " +
+      "logros y celebraciones importantes.",
+  },
+  {
+    titulo: "Promociones y convenios para ti y tu familia",
+    detalle:
+      "Descuentos en gimnasios, cines, entretenimiento, restaurantes, tiendas departamentales, ópticas, " +
+      "laboratorios, clínicas, colegios, universidades, aerolíneas, viajes, agencias y guarderías.",
+  },
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Herramientas de trabajo (dependen del puesto)
 // ─────────────────────────────────────────────────────────────────────────────

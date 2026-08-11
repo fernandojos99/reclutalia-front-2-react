@@ -11,7 +11,7 @@ import { entrevistaExtraService } from "../services/entrevistaExtraService";
 import { candidatoService } from "../services/candidatoService";
 import { formadorService } from "../services/formadorService";
 import { notificacionService } from "../services/notificacionService";
-import type { Candidato, Formador, Notificacion, Vacante, Requisito, Cambios } from "../types/models/domain";
+import type { Candidato, Formador, Notificacion, Vacante, Requisito, Cambios, TipoSolicitud } from "../types/models/domain";
 
 interface Db {
   candidatos: Candidato[];
@@ -36,6 +36,9 @@ interface Actions {
   editarVacante: (vacId: string, req: Requisito, rechazados?: string[], nota?: string) => Promise<Vacante>;
   crearVacante: (req: Requisito, formadorId: string) => Promise<Vacante>;
   solicitarMas: (vacId: string, multiposting: boolean) => Promise<Vacante>;
+  /** Solicitudes al admin desde "Detalle de caja" (formador asignado, centro de costos). */
+  crearSolicitud: (vacId: string, tipo: TipoSolicitud, valor: string) => Promise<Vacante>;
+  resolverSolicitud: (vacId: string, solId: string, aprobar: boolean, nota?: string) => Promise<Vacante>;
   invitar: (vacId: string, cid: number, mensaje: string) => Promise<Vacante>;
   aplicar: (vacId: string, cid: number) => Promise<Vacante>;
   rechazar: (vacId: string, cid: number, motivo: string) => Promise<Vacante>;
@@ -144,6 +147,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     editarVacante: (id, req, rech, nota) => runVac(() => vacanteService.editar(id, req, rech, nota)),
     crearVacante: (req, fid) => runVac(() => vacanteService.crear(req, fid)),
     solicitarMas: (id, mp) => runVac(() => vacanteService.solicitarMasCandidatos(id, mp)),
+    crearSolicitud: (id, tipo, valor) => runVac(() => vacanteService.crearSolicitud(id, tipo, valor)),
+    resolverSolicitud: (id, sid, ap, nota) => runVac(() => vacanteService.resolverSolicitud(id, sid, ap, nota)),
     invitar: (id, cid, m) => runVac(() => pipelineService.invitar(id, cid, m)),
     aplicar: (id, cid) => runVac(() => pipelineService.aplicar(id, cid)),
     rechazar: (id, cid, mo) => runVac(() => pipelineService.rechazar(id, cid, mo)),

@@ -4,7 +4,7 @@
  * estos son de estructura y no cambian, por eso se mantienen aquí (espejo de constants/catalogs).
  */
 export const FASES = [
-  { nombre: "Búsqueda", subs: ["Descriptivo", "Marketplace de talento"] },
+  { nombre: "Búsqueda", subs: ["Publicación", "Marketplace de talento"] },
   { nombre: "Selección", subs: ["Ranking", "Entrevistas", "Selección y documentos"] },
   { nombre: "Contratación", subs: ["Carta oferta", "Contratación"] },
 ] as const;
@@ -25,11 +25,13 @@ export const CAMPOS_DESC: Record<string, string> = {
   nivelPuesto: "Nivel del puesto", numVacantes: "Número de posiciones",
   ubicacionTrabajo: "Ubicación del trabajo", sede: "Sede", unidadNegocio: "Unidad de Negocio",
   tipoVacante: "Tipo de vacante", anosExp: "Años de experiencia", educacion: "Nivel de estudios",
-  radio: "Radio de búsqueda", espRequeridas: "Especialidades",
+  radio: "Radio de búsqueda", espRequeridas: "Áreas de experiencia",
   areasConocimiento: "Área de conocimiento", hardSkills: "Habilidades técnicas",
   softSkills: "Habilidades blandas", aptitudes: "Aptitudes", edad: "Rango de edad",
   turno: "Turno", sueldo: "Sueldo", modalidad: "Modalidad", dias: "Días de trabajo",
   horario: "Horario", salario: "Rango salarial", examenMedico: "Examen médico",
+  // No son campos del descriptivo, pero sí de las solicitudes al administrador (ver `Solicitud`).
+  formadorId: "Formador asignado", centroCostos: "Centro de costos",
 };
 
 /** Niveles de estudios ordenados (para el filtro "estudios mínimos" del pool). */

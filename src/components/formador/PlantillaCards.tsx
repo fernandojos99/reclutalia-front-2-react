@@ -8,11 +8,17 @@
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, ChevronRight, Users, Minus, Plus, RotateCcw, PauseCircle } from "lucide-react";
+import {
+  CheckCircle2, Clock, Users, Minus, Plus, RotateCcw, PauseCircle, FileText, ChevronUp, ChevronDown,
+} from "lucide-react";
 import { useData } from "../../store/DataProvider";
+import { useDemo } from "../../contexts/DemoContext";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
+import { Modal } from "../common/Modal";
+import { BusquedaIAOverlay } from "./poolModals";
 import { matchScore } from "../../utils/match";
+import { diasActivaLabel } from "../../utils/format";
 import { fotoDe, numeroEmpleado } from "../../constants/personas";
 import type { Candidato, Formador, Vacante } from "../../types/models/domain";
 
@@ -34,9 +40,16 @@ const NUM_EMPLEADO_FORMADOR = "112687";
 const ZOOM_MIN = 0.6, ZOOM_MAX = 1.6, ZOOM_PASO = 0.1;
 
 export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; formador?: Formador }) {
-  const { candidatos } = useData();
+  const { candidatos, actions } = useData();
+  const { toast } = useDemo();
   const navigate = useNavigate();
   const [zoom, setZoom] = useState(1);
+  /** Vacante cuyo "¿Comenzar búsqueda?" está abierto. */
+  const [preguntando, setPreguntando] = useState<Vacante | null>(null);
+  /** Vacante que se está publicando con la animación de la IA. */
+  const [buscando, setBuscando] = useState<Vacante | null>(null);
+
+  const revisar = (v: Vacante) => navigate(`/formador/vacante/${v.id}/revisar`);
 
   const ajustar = (d: number) =>
     setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((z + d) * 10) / 10)));
@@ -79,6 +92,9 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
           internas salen correctas solas y el zoom queda confinado a este visor. */}
       <div className="org-visor">
         <div className="org" style={{ zoom }}>
+          {/* Decorativas: insinúan que el organigrama sigue hacia arriba y hacia abajo. No hacen
+              nada (ni clic ni foco), así que van como texto y no como botón. */}
+          {formador && <div className="org-linea"><ChevronUp size={14} /> Ver línea superior</div>}
           {formador && (
         <div className="org-jefe">
           <div className="plant-card org-card-jefe">
@@ -108,13 +124,7 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
           const pausada = !persona && v.req.pausada;
           return (
             <div className="org-rama" key={v.id}>
-              <div
-                className={"plant-card" + (persona ? "" : " libre") + (pausada ? " pausada" : "")}
-                role="button"
-                tabIndex={0}
-                onClick={() => navigate(`/formador/vacante/${v.id}/revisar`)}
-                onKeyDown={(e) => { if (e.key === "Enter") navigate(`/formador/vacante/${v.id}/revisar`); }}
-              >
+              <div className={"plant-card" + (persona ? "" : " libre") + (pausada ? " pausada" : "")}>
                 <div className="plant-nom">
                   {persona ? (
                     <>
@@ -129,13 +139,19 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
                       {pausada ? <Chip icon={PauseCircle}>Pausada</Chip>
                         : enProceso ? <Chip tone="ai">En proceso</Chip>
                           : <Chip tone="gold">Disponible</Chip>}
-                      {/* Etiqueta siempre visible: la acción de la tarjeta no debe depender del hover. */}
-                      <span className="plant-ajustar">Ajustar perfil <ChevronRight size={14} /></span>
+                      {/* Antes aquí iba el enlace "Ajustar perfil", que ahora es un botón propio. */}
+                      <span className="plant-ajustar"><Clock size={13} /> {diasActivaLabel(v)}</span>
                     </>
                   )}
                 </div>
 
-                <div className="plant-puesto">{v.req.titulo}</div>
+                <div className="plant-puesto">{v.req.tituloPublicacion || v.req.titulo}</div>
+
+                {!persona && (
+                  <button type="button" className="plant-revisar" onClick={() => revisar(v)}>
+                    <FileText size={13} /> Revisar publicación
+                  </button>
+                )}
 
                 {persona ? (
                   <div className="plant-viables cubierta">
@@ -152,15 +168,12 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
                     title={estimado
                       ? "Estimación sobre el marketplace; el definitivo se arma al publicar la vacante"
                       : "Ir a la etapa actual del proceso"}
-                    // Sin `?tab=`, VacanteDetailPage resuelve el tab con `tabInicial(v)` y aterriza en
-                    // la etapa viva del proceso. La estimación sí va al Marketplace: aún no hay proceso.
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(estimado ? `/formador/vacante/${v.id}?tab=1` : `/formador/vacante/${v.id}`);
-                    }}
+                    // Sin publicar, primero se pregunta si quiere revisar el anuncio. Ya publicada,
+                    // VacanteDetailPage resuelve el tab con `tabInicial(v)` y cae en la etapa viva.
+                    onClick={() => (estimado ? setPreguntando(v) : navigate(`/formador/vacante/${v.id}`))}
                   >
                     <Users size={14} />
-                    {estimado ? `~${n} compatibles estimados` : "Continuar proceso"}
+                    {estimado ? `Ver ${n} candidatos compatibles` : "Continuar proceso"}
                   </button>
                 ) : (
                   <div className="plant-viables vacio">
@@ -172,8 +185,46 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
           );
         })}
         </div>
+        <div className="org-linea"><ChevronDown size={14} /> Ver siguiente línea</div>
         </div>
       </div>
+
+      {preguntando && (
+        <Modal onClose={() => setPreguntando(null)}>
+          <h3 style={{ fontSize: 16, marginBottom: 6 }}>¿Comenzar búsqueda de candidatos?</h3>
+          <p className="help" style={{ marginTop: 0 }}>
+            Estás por comenzar la búsqueda de candidatos en el marketplace. ¿Quieres usar la
+            publicación actual o prefieres revisarla antes?
+          </p>
+          <div className="paso-acciones">
+            <button type="button" className="btn gold"
+              onClick={() => { setBuscando(preguntando); setPreguntando(null); }}>
+              <Users size={15} /> Continuar con actual
+            </button>
+            <button type="button" className="btn ghost" onClick={() => { revisar(preguntando); setPreguntando(null); }}>
+              <FileText size={15} /> Revisar publicación
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {buscando && (
+        <BusquedaIAOverlay
+          onDone={() => {
+            const v = buscando;
+            setBuscando(null);
+            void (async () => {
+              try {
+                await actions.aprobarVacante(v.id);
+                toast("Vacante publicada · la IA armó tu Marketplace de talento");
+                navigate(`/formador/vacante/${v.id}?tab=1`);
+              } catch (e) {
+                toast("No se pudo publicar: " + (e as Error).message);
+              }
+            })();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -2,8 +2,8 @@
  * Títulos alternativos "sugeridos por IA" para una vacante, orientados a atraer más candidatos.
  *
  * Simulación determinista, igual que `skillsSugeridas()` o el dictado por voz: el mismo puesto da
- * siempre las mismas cinco propuestas. El proyecto prohíbe la aleatoriedad real, y unas
- * sugerencias que cambiaran en cada render se leerían como un fallo.
+ * siempre las mismas propuestas. El proyecto prohíbe la aleatoriedad real, y unas sugerencias que
+ * cambiaran en cada render se leerían como un fallo.
  *
  * Las plantillas ENVUELVEN el título en vez de reescribirlo por dentro. Intentar declinar el
  * sustantivo ("Cajero" → "Supervisor de Cajero") produce español torcido, porque haría falta un
@@ -30,7 +30,14 @@ function semilla(sem: string): number {
   return h;
 }
 
-/** Cinco alternativas al título, sin repetir el original ni entre sí. */
+/**
+ * Alternativas al título, sin repetir el original ni entre sí.
+ *
+ * Son CUATRO porque el desplegable las ofrece junto al título original y el tope acordado son
+ * cinco opciones en total.
+ */
+const MAX_SUGERIDOS = 4;
+
 export function titulosSugeridos(titulo: string, area: string): string[] {
   const t = titulo.trim();
   const a = (area || "").trim() || "el área";
@@ -39,7 +46,7 @@ export function titulosSugeridos(titulo: string, area: string): string[] {
   const vistos = new Set<string>([t.toLowerCase()]);
   const salida: string[] = [];
 
-  for (let i = 0; i < PLANTILLAS.length && salida.length < 5; i++) {
+  for (let i = 0; i < PLANTILLAS.length && salida.length < MAX_SUGERIDOS; i++) {
     const propuesta = PLANTILLAS[(s + i) % PLANTILLAS.length](t, a).replace(/\s+/g, " ").trim();
     const clave = propuesta.toLowerCase();
     if (vistos.has(clave)) continue;

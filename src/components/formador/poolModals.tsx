@@ -19,7 +19,7 @@ export function BusquedaIAOverlay({ onDone }: { onDone: () => void }) {
       <div className="modal" style={{ maxWidth: 420, textAlign: "center", padding: "38px 30px" }}>
         <Loader2 size={46} className="ai-spin" />
         <h3 style={{ marginTop: 16, color: "var(--ai)" }}>La IA está buscando tu talento</h3>
-        <p className="help" style={{ marginTop: 6 }}>Analizando a los candidatos del pool y ordenándolos por compatibilidad con tu vacante.</p>
+        <p className="help" style={{ marginTop: 6 }}>Analizando a los candidatos del marketplace y ordenándolos por compatibilidad con tu vacante.</p>
         <div className="ai-search-msg">{msgs[i]}</div>
         <div className="mini-pipe" style={{ marginTop: 14 }}>{msgs.map((_, k) => <i key={k} className={k <= i ? "f" : ""} style={k <= i ? { background: "var(--ai)" } : {}} />)}</div>
       </div>
