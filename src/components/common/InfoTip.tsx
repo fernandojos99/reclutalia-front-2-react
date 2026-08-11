@@ -20,6 +20,19 @@ import { ChevronDown, type LucideIcon } from "lucide-react";
 
 /** Contenedor respecto al que se centra. Sin él (uso fuera del panel), se usa el viewport. */
 const CONTENEDOR = ".dcaja";
+
+/**
+ * ¿Entiende el navegador `:focus-visible`? Se comprueba una vez: uno antiguo lanza `SyntaxError`
+ * ante una pseudo-clase que no conoce, y eso reventaría el manejador de foco en cada render.
+ */
+const soportaFocusVisible = (() => {
+  try {
+    document.createElement("button").matches(":focus-visible");
+    return true;
+  } catch {
+    return false;
+  }
+})();
 /** Hueco entre el disparador y el panel. */
 const SEPARACION = 8;
 /** Por debajo de esto no cabe el panel encima y hay que volcarlo hacia abajo. */
@@ -95,7 +108,11 @@ export function InfoTip({ children, etiqueta = "Ver detalle" }: Props) {
         onPointerEnter={(e) => { if (e.pointerType === "mouse") abrir(); }}
         onPointerLeave={(e) => { if (e.pointerType === "mouse") cerrar(); }}
         onClick={() => (abierto ? cerrar() : abrir())}
-        onFocus={abrir}
+        // El foco solo abre si viene del TECLADO. En táctil la secuencia es `focus → click`, así que
+        // abrir aquí hacía que el click siguiente lo cerrase: el primer toque abría y cerraba en el
+        // mismo gesto y hacía falta un segundo. Sin `:focus-visible` no se abre por foco en
+        // absoluto — con teclado quedan Enter y Espacio, que producen un `click`.
+        onFocus={(e) => { if (soportaFocusVisible && e.currentTarget.matches(":focus-visible")) abrir(); }}
         onBlur={cerrar}
       >
         {/* Chevron y no una "i": se lee como desplegable, que es lo que hace. Gira al abrirse. */}
