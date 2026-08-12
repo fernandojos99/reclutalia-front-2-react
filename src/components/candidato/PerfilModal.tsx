@@ -5,6 +5,7 @@ import {
   Archive, ArchiveRestore, Download, Share2, MessageSquare,
 } from "lucide-react";
 import { ComentariosCandidato } from "./ComentariosCandidato";
+import { FichaTalento } from "../movilidad/FichaTalento";
 import { Modal } from "../common/Modal";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
@@ -37,6 +38,9 @@ function MC({ e, hit, base }: { e: string; hit?: boolean; base?: string }) {
 
 export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, archivado, onFav, onCat, onArchivar, onCompartir, formadores, formadorActual }: Props) {
   const [verComentarios, setVerComentarios] = useState(false);
+  // Solo los internos tienen ficha de talento; para un externo no hay pestañas que mostrar.
+  const [vista, setVista] = useState<"perfil" | "ficha">("perfil");
+  const esInterno = cand.tipo === "interno";
   const espHit = (e: string) => !!req && req.espRequeridas.includes(e);
 
   // Vista alterna del mismo popup: se sustituye el perfil por las notas de otros formadores.
@@ -61,8 +65,28 @@ export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, arch
   const expShow = verExp ? exp : exp.slice(0, 3);
   const eduShow = verEdu ? edu : edu.slice(0, 3);
 
+  // Ficha de talento del colaborador. `verHistorial` va en true: aquí quien mira es el formador, y
+  // el documento pide que el historial de puestos solo se vea desde su vista.
+  if (esInterno && vista === "ficha") {
+    return (
+      <Modal onClose={onClose} wide>
+        <div className="tabs">
+          <button className="tab" onClick={() => setVista("perfil")}>Perfil</button>
+          <button className="tab on">Ficha de talento</button>
+        </div>
+        <FichaTalento cand={cand} verHistorial />
+      </Modal>
+    );
+  }
+
   return (
     <Modal onClose={onClose} wide>
+      {esInterno && (
+        <div className="tabs">
+          <button className="tab on">Perfil</button>
+          <button className="tab" onClick={() => setVista("ficha")}>Ficha de talento</button>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 14 }}>
         <Avatar nombre={cand.nombre} foto={cand.foto} />
         <div style={{ flex: 1 }}>

@@ -11,6 +11,7 @@ import { NuevaVacantePage } from "../pages/admin/NuevaVacantePage";
 import { PoolPage } from "../pages/admin/PoolPage";
 import { MisProcesosPage } from "../pages/candidato/MisProcesosPage";
 import { BuscarVacantesPage } from "../pages/candidato/BuscarVacantesPage";
+import { MovilidadPage } from "../pages/candidato/MovilidadPage";
 import { NotificacionesPage } from "../pages/NotificacionesPage";
 import { ChatPage } from "../pages/ChatPage";
 
@@ -36,6 +37,7 @@ export function AppRoutes() {
 
         <Route path="/candidato" element={<MisProcesosPage />} />
         <Route path="/candidato/buscar" element={<BuscarVacantesPage />} />
+        <Route path="/candidato/movilidad" element={<MovilidadPage />} />
         <Route path="/candidato/notificaciones" element={<NotificacionesPage />} />
         <Route path="/candidato/chat" element={<ChatPage />} />
 

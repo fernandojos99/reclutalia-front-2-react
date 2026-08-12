@@ -8,7 +8,14 @@ export const hoy = (): string =>
 
 /** Días transcurridos desde la creación (usa creadaTs; fallback: parsea el string `creada`). */
 export function diasActiva(v: { creadaTs?: number; creada?: string }): number {
-  const ts = v.creadaTs ?? parseCreada(v.creada);
+  const ts = v.creadaTs ?? parseFechaMx(v.creada);
+  if (!ts) return 0;
+  return Math.max(0, Math.floor((Date.now() - ts) / 86_400_000));
+}
+
+/** Días transcurridos desde una fecha es-MX ("12 abr 2026"). 0 si no se puede parsear. */
+export function diasDesde(fecha?: string): number {
+  const ts = parseFechaMx(fecha);
   if (!ts) return 0;
   return Math.max(0, Math.floor((Date.now() - ts) / 86_400_000));
 }
@@ -19,8 +26,13 @@ export const diasActivaLabel = (v: { creadaTs?: number; creada?: string }): stri
   return n === 0 ? "Hoy" : `${n} ${n === 1 ? "día" : "días"} activa`;
 };
 
-/** Parsea "01 jul 2026" → timestamp ms (solo fallback cuando no hay creadaTs). */
-function parseCreada(s?: string): number {
+/**
+ * Parsea "01 jul 2026" → timestamp ms. 0 si no cuadra.
+ *
+ * Ojo: `fechaVal` NO sirve para esto. Devuelve un número ordenable (aaaammdd comprimido), no una
+ * fecha real, así que no se le pueden restar días.
+ */
+export function parseFechaMx(s?: string): number {
   if (!s) return 0;
   const m = /(\d{1,2})\s+([a-zá]{3,})\s+(\d{4})/i.exec(s);
   if (!m) return 0;

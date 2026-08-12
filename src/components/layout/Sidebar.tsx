@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Bell, CalendarCheck, LayoutGrid, Plus, Users, Briefcase, Search, X, Radar, RotateCcw, Trash2, AlertTriangle } from "lucide-react";
+import { Home, Bell, CalendarCheck, LayoutGrid, Plus, Users, Briefcase, Search, X, Radar, RotateCcw, Trash2, AlertTriangle, TrendingUp } from "lucide-react";
 import { useDemo, type Rol } from "../../contexts/DemoContext";
 import { useData } from "../../store/DataProvider";
 import { resetSessionId } from "../../services/agenteService";
@@ -24,7 +24,9 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const navPorRol: Record<Rol, { to: string; icon: typeof Home; label: string; end?: boolean }[]> = {
+interface ItemNav { to: string; icon: typeof Home; label: string; end?: boolean }
+
+const navPorRol: Record<Rol, ItemNav[]> = {
   formador: [
     { to: "/formador", icon: Home, label: "Mis vacantes", end: true },
     { to: "/formador/entrevistas", icon: CalendarCheck, label: "Entrevistas asignadas" },
@@ -42,6 +44,19 @@ const navPorRol: Record<Rol, { to: string; icon: typeof Home; label: string; end
     { to: "/candidato/notificaciones", icon: Bell, label: "Notificaciones" },
   ],
 };
+
+/**
+ * Navegación del rol activo. MOVILIDAD solo aparece para candidatos INTERNOS: un externo no se
+ * mueve dentro del grupo porque todavía no está dentro. Va después de "Buscar vacantes" para que
+ * queden juntas las dos formas de encontrar un puesto.
+ */
+function navDe(rol: Rol, cand?: Candidato): ItemNav[] {
+  const base = navPorRol[rol];
+  if (rol !== "candidato" || cand?.tipo !== "interno") return base;
+  const i = base.findIndex((x) => x.to === "/candidato/buscar");
+  const movilidad: ItemNav = { to: "/candidato/movilidad", icon: TrendingUp, label: "Movilidad" };
+  return [...base.slice(0, i + 1), movilidad, ...base.slice(i + 1)];
+}
 
 export function Sidebar({ formadores, candidatos, noLeidas, entrevistasPendientes = 0, open = false, onClose }: SidebarProps) {
   const { rol, setRol, formadorId, setFormadorId, candId, setCandId, tema, setTema, toast } = useDemo();
@@ -117,7 +132,7 @@ export function Sidebar({ formadores, candidatos, noLeidas, entrevistasPendiente
         </button>
       </div>
 
-      {navPorRol[rol].map(({ to, icon: Icon, label, end }) => (
+      {navDe(rol, candidatos.find((c) => c.id === candId)).map(({ to, icon: Icon, label, end }) => (
         <NavLink key={to} to={to} end={end} onClick={onClose}
           className={({ isActive }) => "nav-item" + (isActive ? " on" : "")}>
           <Icon size={16} />

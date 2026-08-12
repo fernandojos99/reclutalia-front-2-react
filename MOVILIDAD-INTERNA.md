@@ -14,7 +14,7 @@ Origen: `prompt.md` ("Implementación del proceso de movilidad interna"), agosto
 | Fase | Qué incluye | Estado |
 |---|---|---|
 | **1** | Modelo de datos, semilla y semáforo | **Hecha** |
-| **2** | Vista de colaborador: sección MOVILIDAD | Pendiente |
+| **2** | Vista de colaborador: sección MOVILIDAD | **Hecha** |
 | **3** | Agente de movilidad | Pendiente |
 | **4** | Vista de formador: módulo "Movilidad interna" | Pendiente |
 
@@ -163,19 +163,67 @@ catálogos) son idénticas entre repos ignorando comentarios.
 
 ---
 
+## Fase 2 — hecha
+
+**Backend**
+
+- `src/data/seed.ts` — **dos vacantes abiertas nuevas** (V-1053 Ejecutivo de Ventas Digitales,
+  V-1054 Coordinador de Call Center). Era un hueco de la Fase 1: con una sola vacante abierta el
+  ranking salía casi vacío y **"Transferir" no se podía disparar nunca**, porque exige una vacante
+  por encima del 70% de afinidad. **Cuidado al tocarlas:** "Promover" exige justo lo contrario
+  —ninguna por encima del 70%—, así que una vacante nueva afín a Diego (6) o Renata (15) les
+  cambiaría la acción recomendada.
+
+**Front**
+
+- `src/utils/movilidad.ts` — **todas las reglas en un solo sitio**: semáforo, antigüedad,
+  `haceCuanto`, `perfilInactivo`, `avancePlan`, `rankingVacantes`, `estatusMovilidad` y
+  `accionRecomendada`. La Fase 4 solo tiene que pintarlas.
+- `src/utils/format.ts` — se expone `parseFechaMx` (antes privada como `parseCreada`) y se añade
+  `diasDesde`. **`fechaVal` no sirve para esto**: devuelve un número ordenable, no una fecha real.
+- `src/components/movilidad/FichaTalento.tsx` — la usan las dos vistas; `verHistorial` controla que
+  el historial de puestos solo se vea desde la del formador.
+- `src/components/movilidad/PlanDesarrolloPanel.tsx` — puesto objetivo, índice de avance y
+  palomitas interactivas.
+- `src/pages/candidato/MovilidadPage.tsx` — las 3 secciones. La de ranking reusa
+  `DetalleVacanteModal` + `AplicarModal` y el guardia `procesoActivoEnOtra`, para que el botón de
+  aplicar haga algo de verdad.
+- `src/components/layout/Sidebar.tsx` — `navPorRol` sigue siendo constante; se añadió `navDe(rol,
+  cand)` que le inserta MOVILIDAD **solo a los internos**.
+- `src/components/candidato/PerfilModal.tsx` — pestañas Perfil / Ficha de talento, solo para internos.
+- `src/routes/AppRoutes.tsx` — `/candidato/movilidad`.
+
+**Decisiones de esta fase**
+
+- **No hizo falta crear `SubNav`**: `base.css:194-197` ya trae `.tabs` / `.tab` / `.tab.on`, que es
+  justo el navegador superior que pedía el documento. Lo usan ya `PerfilEditor` y `VacanteForm`.
+- El manual del agente va en `InfoTip`, que **abre al pulsar, no al pasar por encima**. El documento
+  pedía hover, pero en móvil no existe y ese componente se arregló en su día justamente para que no
+  hiciera falta pulsar dos veces.
+- Las palomitas mandan el candidato **completo** a `guardarCandidato`. Es obligatorio: reemplaza el
+  objeto entero, así que enviar solo el plan borraría el resto de la ficha.
+
+**Verificado:** `typecheck` en los dos repos y `build` del front; el backend arrancado en un puerto
+aparte sirve las 3 vacantes abiertas y la ficha completa por HTTP; y **alternar una palomita con
+`PUT /api/candidatos/2` la persiste (3→4) sin perder cursos, historial ni semáforo**.
+
+Reparto que producen las reglas sobre la semilla — los seis casos se disparan:
+
+| id | Estatus | Acción | Plan | Mejor afinidad |
+|---|---|---|---|---|
+| 2 | En búsqueda | **Transferir** | 3/5 | 98% |
+| 6 | En búsqueda | **Promover** | 3/4 | 37% |
+| 11 | En búsqueda | **Formar** | 1/4 | 79% |
+| 15 | Actualizado | Promover | — | 42% |
+| 18 | En búsqueda | Formar | 2/4 | 46% |
+| 21 | Actualizado | **Agradecer** | — | 32% |
+| 24 | **Inactivo** | **Desvincular** | — | 61% |
+| 27 | En búsqueda | Transferir | 3/4 | 98% |
+| 32 | Actualizado | **Sin acción** | — | 45% |
+
+---
+
 ## Lo que queda
-
-### Fase 2 · Vista de colaborador
-
-- Ruta `/candidato/movilidad` y entrada **MOVILIDAD** en `Sidebar.tsx`, **solo si el candidato activo
-  es interno**. Hoy `navPorRol` es una constante; hay que volverla función del candidato.
-- Navegador superior de 3 secciones (no existe ningún componente de tabs reutilizable; hay que
-  crear `SubNav`).
-- **Ficha de talento**: nombre, puesto, antigüedad y semáforo arriba a la derecha; habilidades,
-  cursos y puestos de interés. El **historial solo se pinta en la vista del formador**. Se añade
-  también como pestaña en `components/candidato/PerfilModal.tsx`.
-- **Ranking de vacantes**: tarjetas por afinidad reusando `matchScore` (`src/utils/match.ts`) con el
-  formato del Marketplace, y debajo el historial separado en activas y cerradas.
 
 ### Fase 3 · Agente de movilidad
 
@@ -185,8 +233,10 @@ catálogos) son idénticas entre repos ignorando comentarios.
   `app.ts`. Sin eso, este agente repetirá el fallo de las notificaciones que se perdían.
 - El plan generado **se persiste en `planDesarrollo`**: si no, las palomitas se pierden al recargar y
   el formador no puede leer el avance.
-- Front: marco del puesto objetivo, índice de completitud, lista de checkboxes y el chat debajo.
-  Manual del agente en un icono de interrogación reusando `components/common/InfoTip.tsx`.
+- Front: el marco del puesto objetivo, el índice y las palomitas **ya están hechos**
+  (`PlanDesarrolloPanel`); falta **el chat debajo**, en la sección "Agente de movilidad" de
+  `MovilidadPage.tsx`, donde hoy hay un aviso de que llega en la siguiente entrega.
+- Cuando el agente genere un plan, el panel ya lo pinta solo: basta con escribir `planDesarrollo`.
 
 ### Fase 4 · Vista de formador
 
