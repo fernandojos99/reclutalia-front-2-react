@@ -16,7 +16,7 @@ Origen: `prompt.md` ("Implementación del proceso de movilidad interna"), agosto
 | **1** | Modelo de datos, semilla y semáforo | **Hecha** |
 | **2** | Vista de colaborador: sección MOVILIDAD | **Hecha** |
 | **3** | Agente de movilidad | **Hecha** |
-| **4** | Vista de formador: módulo "Movilidad interna" | Pendiente |
+| **4** | Vista de formador: módulo "Movilidad interna" | **Hecha** |
 
 ---
 
@@ -274,19 +274,61 @@ un fallo del agente.
 
 ---
 
+## Fase 4 — hecha
+
+Todo en el front: las reglas ya estaban en `utils/movilidad.ts` desde la Fase 2, así que esta fase
+fue casi solo pintarlas.
+
+- `src/pages/formador/MovilidadInternaPage.tsx` — ruta `/formador/movilidad`, dos secciones y el
+  aviso de procesos de movilidad abiertos.
+- `src/components/movilidad/TablaEquipo.tsx` — las 11 columnas del documento. **Estatus y acción
+  recomendada se calculan al pintar**, nunca se leen de un campo guardado.
+- `src/components/movilidad/EstatusEquipo.tsx` — cuota de movilidad, movimientos posibles, puestos
+  emergentes, fichas sin actualizar y postulaciones de la plantilla.
+- `src/components/movilidad/ProcesoMovilidadModal.tsx` — la ventana de la ETAPA 1: quién se mueve,
+  el puesto que quedaría por cubrir y las fichas que podrían cubrirlo.
+- `src/utils/movilidad.ts` — se añadieron `afinidadEntre`, `candidatosParaCubrir` y `enMovilidad`.
+- `src/components/layout/Sidebar.tsx` — entrada "Movilidad interna" para el formador.
+
+**Por qué `afinidadEntre` y no `matchScore`:** `matchScore` compara un candidato contra un
+`Requisito`, y el puesto que deja quien se mueve **no es una vacante todavía** —prever eso es
+justamente el punto—. `afinidadEntre` mide el solapamiento de perfiles con el mismo reparto de pesos
+(especialidades por encima de todo) y es determinista.
+
+**Etapas del documento que YA estaban hechas** y no hizo falta tocar:
+
+| Etapa | Dónde estaba |
+|---|---|
+| [F] Distinguir internos en el Marketplace | `VacanteDetailPage.tsx:154,377` (tag) y `:286` (filtro Ambos/Internos/Externos) |
+| [F] Redirigir al Marketplace al lanzar la vacante | Los **tres** caminos de aprobación ya navegan a `?tab=1`: `RevisarVacantePage`, `PlantillaCards` y `VacanteDetailPage` |
+| [C] Bloqueo del segundo proceso | `movilidadService.iniciar()` (Fase 3) |
+| [F] Notificación de nuevo proceso | `movilidadService.iniciar()` (Fase 3) |
+
+**Verificado** con las reglas corridas sobre la semilla: los 5 formadores tienen plantilla, las seis
+acciones se reparten entre ellos, y la sucesión de la ETAPA 1 solo propone perfiles de semáforo
+verde (para Regina: Jorge 48%, Renata 21%, Diego 12%). La afinidad es simétrica y da el mismo valor
+al repetirla.
+
+---
+
 ## Lo que queda
 
-### Fase 4 · Vista de formador
+**Nada del documento salvo dos cosas.**
 
-- `/formador/movilidad` con la tabla del equipo (internos con su `formadorId`), 11 columnas.
-- Estatus derivado apoyándose en `PIPE_IDX` / `flujoService`: **"En proceso" = el candidato llegó a
-  `evaluado`**, que es exactamente "terminó su primera entrevista con IA".
-- **Estatus de equipo**: cuota de movilidad, avisos, puestos emergentes, postulaciones y estado de
-  actualización de las fichas.
-- **Etapas 1-4**: notificación de nuevo proceso con su ventana de fichas afines
-  (`notificacionService.emitir`); bloqueo con `movilidadActivaVacId` siguiendo el patrón de
-  `tieneProcesoActivo()` (`pipelineService.ts`); distintivo de perfil interno en el Marketplace;
-  redirección al Marketplace al lanzar la vacante.
+1. **"Honesteles"** — el documento pedía "Estatus del perfil en Honesteles" en la ficha de talento.
+   Quedó fuera porque no se pudo aclarar qué es. Si se retoma, va en
+   `components/movilidad/FichaTalento.tsx`.
+2. **"[F] Agente traduce el descriptivo de vacante, el formador confirma o edita"** (ETAPA 3) — la
+   frase es ambigua y no se implementó. Ya existen `clasificar_vacante`, `perfilIA` y `tituloIA`,
+   que hacen algo parecido; conviene aclarar qué se esperaba antes de construir nada.
+
+### Ideas anotadas, no pedidas
+
+- El semáforo no se recalcula nunca. Si algún día se quiere una **sugerencia** calculada al lado del
+  campo del administrador, la fórmula natural es la completitud del plan más la antigüedad.
+- El agente de movilidad **no tiene handler de desconexión** en su SSE, igual que el agente general:
+  si el colaborador cierra la pestaña a mitad de turno, el bucle sigue gastando llamadas al modelo.
+  Los datos están a salvo gracias a la persistencia por tool; el gasto no.
 
 ---
 

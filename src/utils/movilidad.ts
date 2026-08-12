@@ -120,6 +120,45 @@ export function accionRecomendada(c: Candidato, vacantes: Vacante[]): AccionReco
   return "Sin acción";
 }
 
+/**
+ * Afinidad entre DOS colaboradores, para cubrir un puesto que va a quedar libre.
+ *
+ * `matchScore` no sirve aquí: compara un candidato contra un `Requisito`, y el puesto que deja
+ * alguien que se mueve no es una vacante todavía —es justo lo que hay que prever—. Se mide el
+ * solapamiento de especialidades, técnicas y blandas contra el perfil de quien se va, con el mismo
+ * reparto de pesos que el motor de match (especialidades por encima de todo) y sin azar.
+ */
+export function afinidadEntre(candidato: Candidato, referencia: Candidato): number {
+  const solape = (a: string[], b: string[]): number =>
+    b.length ? a.filter((x) => b.includes(x)).length / b.length : 0;
+
+  let s = 0;
+  s += solape(candidato.esp, referencia.esp) * 55;
+  s += solape(candidato.hard, referencia.hard) * 25;
+  s += solape(candidato.soft, referencia.soft) * 10;
+  if (candidato.area === referencia.area) s += 6;
+  if (candidato.ciudad === referencia.ciudad) s += 4;
+  return Math.min(98, Math.round(s));
+}
+
+/**
+ * Perfiles que podrían cubrir el puesto de quien inicia una movilidad.
+ *
+ * Solo entran los de **semáforo verde**, como pide el documento: alguien con movilidad baja no es
+ * candidato a moverse por muy afín que sea su perfil.
+ */
+export function candidatosParaCubrir(referencia: Candidato, todos: Candidato[], limite = 4) {
+  return todos
+    .filter((c) => c.id !== referencia.id && c.tipo === "interno" && c.movilidad === "alta")
+    .map((c) => ({ c, afinidad: afinidadEntre(c, referencia) }))
+    .sort((a, b) => b.afinidad - a.afinidad)
+    .slice(0, limite);
+}
+
+/** Colaboradores del equipo con un proceso de movilidad en curso. */
+export const enMovilidad = (equipo: Candidato[]): Candidato[] =>
+  equipo.filter((c) => !!c.movilidadActivaVacId);
+
 /** Tono de `Chip` para cada acción, para pintarlas igual en toda la aplicación. */
 export const TONO_ACCION: Record<AccionRecomendada, string> = {
   Transferir: "ok",

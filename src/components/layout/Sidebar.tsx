@@ -30,6 +30,7 @@ const navPorRol: Record<Rol, ItemNav[]> = {
   formador: [
     { to: "/formador", icon: Home, label: "Mis vacantes", end: true },
     { to: "/formador/entrevistas", icon: CalendarCheck, label: "Entrevistas asignadas" },
+    { to: "/formador/movilidad", icon: TrendingUp, label: "Movilidad interna" },
     { to: "/formador/notificaciones", icon: Bell, label: "Notificaciones" },
   ],
   admin: [
