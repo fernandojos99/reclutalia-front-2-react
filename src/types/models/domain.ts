@@ -238,6 +238,46 @@ export interface DocsPerfil {
   cv: string | null;
 }
 
+/* ─────────────── Movilidad interna ───────────────
+ * Espejo de `back/src/types/domain.ts`. Solo tiene sentido en candidatos `interno`.
+ */
+
+/** Semáforo de elegibilidad. Es un DATO que edita el administrador, no un cálculo. */
+export type NivelMovilidad = "alta" | "media" | "baja";
+
+/** Desempeño en el puesto actual. Sin `ñ`: ningún identificador del dominio la usa. */
+export type NivelDesempeno = "alto" | "medio" | "bajo";
+
+export interface CursoItem {
+  nombre: string;
+  tipo: "curso" | "certificado" | "licencia";
+  /** Fecha de obtención en formato es-MX ("14 mar 2025"). */
+  fecha: string;
+  institucion?: string;
+}
+
+export interface HabilidadPlan {
+  nombre: string;
+  hecha: boolean;
+  como?: string;
+}
+
+export interface PlanDesarrollo {
+  puestoObjetivo: string;
+  habilidades: HabilidadPlan[];
+  necesidades: string[];
+  cursosSugeridos: string[];
+  generado: string;
+}
+
+export interface HistorialPuesto {
+  puesto: string;
+  desde: string;
+  /** Vacío si es el puesto actual. */
+  hasta: string;
+  motivo: "ingreso" | "ascenso" | "movilidad";
+}
+
 export interface Candidato {
   id: number;
   nombre: string;
@@ -269,4 +309,20 @@ export interface Candidato {
   favoritos: string[];
   psicometrico: { fecha: string; ts: number } | null;
   docsPerfil: DocsPerfil;
+
+  /* ── Movilidad interna: solo internos. Ver los tipos de arriba. ── */
+  /** Semáforo de elegibilidad. Lo edita el administrador; NO se recalcula solo. */
+  movilidad?: NivelMovilidad;
+  desempeno?: NivelDesempeno;
+  cursos?: CursoItem[];
+  /** Puestos a los que le gustaría moverse, definidos por el propio colaborador. */
+  puestosInteres?: string[];
+  /** Inicio en el puesto ACTUAL, para la antigüedad de la ficha ("01 mar 2023"). */
+  antiguedadDesde?: string;
+  /** Última vez que tocó su ficha. Decide el estatus "Inactivo" (más de 1 mes). */
+  perfilActualizado?: string;
+  planDesarrollo?: PlanDesarrollo;
+  historialPuestos?: HistorialPuesto[];
+  /** Vacante del proceso de movilidad en curso; mientras tenga valor no puede abrir otro. */
+  movilidadActivaVacId?: string;
 }
