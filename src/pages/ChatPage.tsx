@@ -47,7 +47,10 @@ function AsistenteIA() {
   const identidad = useMemo<Identidad>(() => ({ rol, formadorId, candId }), [rol, formadorId, candId]);
 
   // Etapa actual (para chips de preguntas y para avisar al agente). Se recalcula al avanzar el pipeline.
-  const etapa = useMemo(() => etapaChat(rol, vacantes, candId), [rol, vacantes, candId]);
+  const etapa = useMemo(
+    () => etapaChat(rol, vacantes, candId, formadorId),
+    [rol, vacantes, candId, formadorId],
+  );
   const chips = useMemo(() => getPreguntas(rol, etapa.stageKey), [rol, etapa.stageKey]);
 
   const [sesiones, setSesiones] = useState<ChatSesion[]>([]);
