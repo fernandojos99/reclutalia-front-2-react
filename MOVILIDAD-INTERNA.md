@@ -15,7 +15,7 @@ Origen: `prompt.md` ("Implementación del proceso de movilidad interna"), agosto
 |---|---|---|
 | **1** | Modelo de datos, semilla y semáforo | **Hecha** |
 | **2** | Vista de colaborador: sección MOVILIDAD | **Hecha** |
-| **3** | Agente de movilidad | Pendiente |
+| **3** | Agente de movilidad | **Hecha** |
 | **4** | Vista de formador: módulo "Movilidad interna" | Pendiente |
 
 ---
@@ -223,20 +223,58 @@ Reparto que producen las reglas sobre la semilla — los seis casos se disparan:
 
 ---
 
+## Fase 3 — hecha
+
+**Backend**
+
+- `src/services/movilidadService.ts` — toda la lógica: `ficha`, `vacantesAfines`,
+  `definirPuestosInteres`, `agregarCurso`, `guardarPlan`, `marcarHabilidad`, `iniciar`, `cerrar`,
+  `equipoDe`. **Cualquier escritura toca `perfilActualizado`**, que es lo que decide el estatus
+  "Inactivo": si no se moviera solo, la tabla del formador mentiría.
+- `src/agent-movilidad/` — `tools.ts` (9 tools), `systemPrompt.ts`, `runner.ts`, `sessions.ts`.
+- `src/controllers/movilidadAgentController.ts` + rutas `POST /api/movilidad/chat`,
+  `GET /api/movilidad/:cid/ficha`, `GET /api/movilidad/:cid/vacantes`.
+- `src/app.ts` — `/api/movilidad/chat` **excluida del middleware de escritura**, como
+  `/api/agente/*`. El runner replica la persistencia por tool; sin las dos cosas este agente habría
+  repetido el fallo de las notificaciones perdidas.
+
+**Front**
+
+- `src/services/sse.ts` — el parser de SSE extraído. Lo comparten los dos agentes: es transporte
+  (bytes y separadores), no lógica de agente.
+- `src/services/movilidadAgenteService.ts` — sesión con prefijo `mov-` por colaborador.
+- `src/components/agente/AgentChat.tsx` — props nuevas `enviar` y `placeholder`. **`AgentChat` sigue
+  siendo el único chat**: `CLAUDE.md` prohíbe duplicar su lógica de streaming, así que lo que cambia
+  entre agentes es a dónde va el mensaje, no cómo se pinta.
+- `src/pages/candidato/MovilidadPage.tsx` — el chat montado en la sección del agente, con `reload()`
+  al terminar cada turno para ver lo que el agente acaba de escribir en la ficha.
+
+**Qué comparte con el agente general** (decisión, no descuido): `agent/deepseek.ts` (cliente HTTP del
+proveedor), `services/sse.ts` (parser de bytes), `db/chatRepository` y sus tablas, y `AgentChat`.
+Todo lo que define al agente —prompt, tools, runner, ruta, sesiones— es propio.
+
+**Trampa encontrada:** el prompt decía "confirma antes de guardar un plan" y el modelo **describía el
+plan en prosa sin llamar a `proponer_plan`**, así que no quedaba nada guardado. Corregido: se guarda
+en el mismo turno (el plan es reversible) y la confirmación se reserva para `iniciar_movilidad`, que
+sí postula de verdad y bloquea los demás procesos.
+
+**Verificado** contra el backend levantado en un puerto aparte, con conversaciones reales:
+
+| Escenario | Resultado |
+|---|---|
+| "Ármame un plan hacia Gerente de lealtad" | `mi_ficha → catalogos_habilidades → vacantes_afines → proponer_plan`; plan guardado, **avance 4 de 9** porque marcó como hechas las que su ficha ya demuestra |
+| "Ya terminé Liderazgo, márcalo" | `marcar_habilidad`; avance 4→5, y de paso añadió el curso |
+| Regina inicia movilidad en V-1054 | `movilidadActivaVacId = V-1054`, pipeline `27: postulado`, y **notificación a su formador F4** (ETAPA 1) |
+| Regina intenta un segundo proceso | El agente lee la ficha, ve el proceso en curso y **lo rechaza sin intentarlo** (ETAPA 3) |
+| Ficha de un externo | `ValidationError`: "La movilidad interna es solo para colaboradores del grupo." |
+
+**Ojo al probar en local:** sin `DATABASE_URL` **no hay memoria de chat** (lo documenta `CLAUDE.md`),
+así que cada turno arranca en blanco y una conversación de varios turnos parece que "olvida". No es
+un fallo del agente.
+
+---
+
 ## Lo que queda
-
-### Fase 3 · Agente de movilidad
-
-- Backend `src/agent-movilidad/`: runner, tools, prompt, sesiones y ruta SSE propios.
-- **Replicar la persistencia por tool** de `src/agent/runner.ts` (`snapshotStore` → `hayCambios` →
-  `persistChanged` alrededor de cada tool) y excluir la ruta nueva del middleware de escritura de
-  `app.ts`. Sin eso, este agente repetirá el fallo de las notificaciones que se perdían.
-- El plan generado **se persiste en `planDesarrollo`**: si no, las palomitas se pierden al recargar y
-  el formador no puede leer el avance.
-- Front: el marco del puesto objetivo, el índice y las palomitas **ya están hechos**
-  (`PlanDesarrolloPanel`); falta **el chat debajo**, en la sección "Agente de movilidad" de
-  `MovilidadPage.tsx`, donde hoy hay un aviso de que llega en la siguiente entrega.
-- Cuando el agente genere un plan, el panel ya lo pinta solo: basta con escribir `planDesarrollo`.
 
 ### Fase 4 · Vista de formador
 

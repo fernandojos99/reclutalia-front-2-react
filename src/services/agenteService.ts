@@ -4,6 +4,7 @@
  * fetch + ReadableStream (EventSource no permite POST, por eso parseamos a mano).
  */
 import { API_BASE_URL } from "../config/api";
+import { leerStreamSSE } from "./sse";
 
 export type Rol = "admin" | "formador" | "candidato";
 
@@ -49,44 +50,10 @@ export function resetSessionId(): void {
  * Envía un mensaje y consume el stream SSE. Llama a `onEvent` por cada evento.
  * Devuelve una promesa que resuelve al terminar el stream.
  */
-export async function enviarMensaje(
+export function enviarMensaje(
   payload: AgentePayload,
   onEvent: (e: AgenteEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/agente/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-    body: JSON.stringify(payload),
-    signal,
-  });
-
-  if (!res.ok || !res.body) {
-    const detalle = await res.text().catch(() => "");
-    throw new Error(`Error del agente (HTTP ${res.status}). ${detalle.slice(0, 200)}`);
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  // Los eventos SSE llegan separados por línea en blanco (\n\n).
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    let sep: number;
-    while ((sep = buffer.indexOf("\n\n")) !== -1) {
-      const bloque = buffer.slice(0, sep);
-      buffer = buffer.slice(sep + 2);
-      const linea = bloque.split("\n").find((l) => l.startsWith("data:"));
-      if (!linea) continue;
-      try {
-        onEvent(JSON.parse(linea.slice(5).trim()) as AgenteEvent);
-      } catch {
-        /* ignora bloques no-JSON (p.ej. comentarios keep-alive) */
-      }
-    }
-  }
+  return leerStreamSSE<AgenteEvent>(`${API_BASE_URL}/agente/chat`, payload, onEvent, signal);
 }

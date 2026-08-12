@@ -16,7 +16,9 @@ import { InfoTip } from "../../components/common/InfoTip";
 import { MatchRing } from "../../components/common/MatchRing";
 import { FichaTalento } from "../../components/movilidad/FichaTalento";
 import { PlanDesarrolloPanel } from "../../components/movilidad/PlanDesarrolloPanel";
+import { AgentChat } from "../../components/agente/AgentChat";
 import { DetalleVacanteModal, AplicarModal } from "../../components/candidato/buscarModals";
+import { enviarMensajeMovilidad, getSessionMovilidad } from "../../services/movilidadAgenteService";
 import { money } from "../../utils/format";
 import { procesoActivoEnOtra } from "../../utils/pipeline";
 import { rankingVacantes } from "../../utils/movilidad";
@@ -24,6 +26,18 @@ import { UMBRAL_AFINIDAD } from "../../constants/catalogos";
 import type { Candidato, Vacante } from "../../types/models/domain";
 
 const SECCIONES = ["Ficha de talento", "Agente de movilidad", "Ranking de vacantes"] as const;
+
+const BIENVENIDA =
+  "Soy tu agente de movilidad. Puedo ayudarte a encontrar tu siguiente puesto dentro del grupo y a " +
+  "armar un plan para llegar a él. Cuéntame qué te gustaría hacer, o pregúntame qué vacantes encajan " +
+  "hoy con tu perfil.";
+
+const CHIPS_MOVILIDAD = [
+  "¿Qué vacantes encajan con mi perfil?",
+  "¿Qué me falta para llegar a mi puesto de interés?",
+  "Arma un plan de desarrollo para mí",
+  "¿Cómo puedo mejorar mi movilidad?",
+];
 
 const MANUAL_AGENTE = `El agente de movilidad te acompaña a dar tu siguiente paso dentro del grupo.
 
@@ -112,8 +126,11 @@ function HistorialVacantes({ cand, vacantes, onDetalle }: {
 }
 
 export function MovilidadPage() {
-  const { candidatos, vacantes, actions } = useData();
+  const { candidatos, vacantes, actions, reload } = useData();
   const { candId, toast } = useDemo();
+  // El agente escribe en la ficha (plan, cursos, puestos de interés), así que la sesión va atada al
+  // colaborador y al terminar cada turno se recargan los datos para ver lo que acaba de guardar.
+  const sesion = getSessionMovilidad(candId);
   const [sec, setSec] = useState(0);
   const [detalle, setDetalle] = useState<string | null>(null);
   const [aplicarA, setAplicarA] = useState<string | null>(null);
@@ -179,9 +196,25 @@ export function MovilidadPage() {
             </InfoTip>
           </div>
           <PlanDesarrolloPanel cand={cand} onToggle={alternarHabilidad} guardando={guardando} />
-          <div className="card" style={{ marginTop: 16, color: "var(--gray)", fontSize: 13, lineHeight: 1.6 }}>
-            El chat con el agente de movilidad, para identificar puestos nuevos y generar un plan
-            desde cero, llega en la siguiente entrega.
+
+          <div style={{ marginTop: 18 }}>
+            <label>Identifica nuevos puestos con el agente</label>
+            <div className="card" style={{ padding: 0, overflow: "hidden", marginTop: 6, display: "flex", flexDirection: "column", height: 460 }}>
+              {/* Se reusa el chat canónico con otro transporte: la lógica de streaming, Markdown y
+                  sugerencias vive solo en AgentChat. `key` lo re-monta si cambias de colaborador. */}
+              <AgentChat
+                key={sesion}
+                sessionId={sesion}
+                identidad={{ rol: "candidato", candId: cand.id }}
+                initial={[{ de: "bot", t: BIENVENIDA }]}
+                chips={CHIPS_MOVILIDAD}
+                placeholder="Cuéntale a qué puesto te gustaría llegar…"
+                enviar={(mensaje, onEvent) =>
+                  enviarMensajeMovilidad({ sessionId: sesion, mensaje, candId: cand.id }, onEvent)
+                }
+                onActividad={() => { void reload(); }}
+              />
+            </div>
           </div>
         </>
       )}
