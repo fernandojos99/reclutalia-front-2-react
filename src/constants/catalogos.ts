@@ -21,6 +21,9 @@ export const DESEMPENO = [
 
 export const TIPOS_CURSO = ["curso", "certificado", "licencia"] as const;
 
+/** Gravedad de un acta administrativa en Honesteles. */
+export const TIPOS_ACTA = ["leve", "grave"] as const;
+
 /** Estatus del colaborador en su movilidad. Se DERIVA del proceso, no se guarda. */
 export const ESTADOS_MOVILIDAD = [
   "Inactivo", "Actualizado", "En búsqueda", "En proceso", "Seleccionado", "Contratado",

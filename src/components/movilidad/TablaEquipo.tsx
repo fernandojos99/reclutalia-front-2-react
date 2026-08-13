@@ -8,7 +8,7 @@
  */
 import { Chip } from "../common/Chip";
 import {
-  accionRecomendada, antiguedad, avancePlan, estatusMovilidad, haceCuanto,
+  accionRecomendada, antiguedad, avancePlan, estatusHonesteles, estatusMovilidad, haceCuanto,
   nivelDesempeno, nivelMovilidad, rankingVacantes, TONO_ACCION,
 } from "../../utils/movilidad";
 import { UMBRAL_AFINIDAD } from "../../constants/catalogos";
@@ -46,7 +46,7 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil }: Props) {
           <thead>
             <tr>
               <th>NOMBRE</th><th>PUESTO</th><th>ESPECIALIDADES</th><th>DESEMPEÑO</th>
-              <th>HABILIDADES</th><th>INTERÉS</th><th>SEMÁFORO</th><th>ESTATUS</th>
+              <th>HABILIDADES</th><th>INTERÉS</th><th>SEMÁFORO</th><th>ACTAS</th><th>ESTATUS</th>
               <th>ACCIÓN RECOMENDADA</th><th>ÚLTIMA ACTUALIZACIÓN</th><th></th>
             </tr>
           </thead>
@@ -57,6 +57,7 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil }: Props) {
               const estatus = estatusMovilidad(c, vacantes);
               const accion = accionRecomendada(c, vacantes);
               const plan = avancePlan(c);
+              const honesteles = estatusHonesteles(c);
               const mejor = rankingVacantes(c, vacantes)[0];
               const intereses = c.puestosInteres ?? [];
 
@@ -88,6 +89,12 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil }: Props) {
                     {intereses.length > 1 && <div className="help">y {intereses.length - 1} más</div>}
                   </td>
                   <td>{mov ? <Chip tone={mov.tono}>{mov.corto}</Chip> : <span className="help">—</span>}</td>
+                  {/* Honesteles. En la tabla basta el recuento; los motivos están en la ficha. */}
+                  <td>
+                    {honesteles
+                      ? <Chip tone={honesteles.tono}>{honesteles.n ? honesteles.n : honesteles.tono === "gold" ? "En revisión" : "Ninguna"}</Chip>
+                      : <span className="help">—</span>}
+                  </td>
                   <td><Chip tone={TONO_ESTATUS[estatus] ?? ""}>{estatus}</Chip></td>
                   <td>
                     <Chip tone={TONO_ACCION[accion]}>{accion}</Chip>

@@ -29,6 +29,7 @@ import { Celebracion } from "../../components/formador/Celebracion";
 import { BusquedaIAOverlay, CategorizarModal, CompartirModal, SolicitarMasModal } from "../../components/formador/poolModals";
 import { money, diasActivaLabel, mapsUrl, folioCita } from "../../utils/format";
 import { procesoActivoEnOtra } from "../../utils/pipeline";
+import { nivelMovilidad } from "../../utils/movilidad";
 import { descargarCV } from "../../utils/descargarCV";
 import { candidatoElegido, faseVacante } from "../../utils/fases";
 import { EDUCACION, PIPE_IDX } from "../../constants/catalogos";
@@ -163,6 +164,11 @@ export function VacanteDetailPage() {
           <button className="btn ghost sm" onClick={() => { void actions.archivarCand(v.id, cid); toast("Candidato restaurado al Marketplace de talento"); }}><ArchiveRestore size={13} /> Restaurar</button>
         ) : (
           <>
+            {/* Semáforo de movilidad junto a las acciones: es justo aquí donde el formador decide a
+                quién invitar. Solo los internos lo tienen; un externo no se mueve dentro del grupo. */}
+            {nivelMovilidad(c) && (
+              <Chip tone={nivelMovilidad(c)!.tono}>{nivelMovilidad(c)!.etiqueta}</Chip>
+            )}
             <div style={{ display: "flex", gap: 6 }}>
               <button className="btn ghost sm" onClick={() => setPerfil({ c, match })}><User size={13} /> Ver perfil</button>
               <button className="btn ghost sm" onClick={() => descargarCV(c)}><Download size={13} /> CV</button>

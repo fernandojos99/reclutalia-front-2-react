@@ -278,6 +278,28 @@ export interface HistorialPuesto {
   motivo: "ingreso" | "ascenso" | "movilidad";
 }
 
+/** Acta administrativa levantada en Honesteles. */
+export interface ActaAdministrativa {
+  motivo: string;
+  tipo: "leve" | "grave";
+  /** Fecha del acta en formato es-MX ("14 mar 2025"). */
+  fecha: string;
+}
+
+/**
+ * Expediente del colaborador en **Honesteles**, la plataforma de actas administrativas.
+ *
+ * No se guarda ningún "estatus": se DERIVA de `actas` y `enRevision` (ver `utils/movilidad.ts`).
+ * Un estatus almacenado podría decir "sin actas" teniendo dos.
+ */
+export interface Honesteles {
+  actas: ActaAdministrativa[];
+  /** Hay un acta abierta sin resolver en la plataforma. */
+  enRevision?: boolean;
+  /** Última sincronización con Honesteles. */
+  actualizado: string;
+}
+
 export interface Candidato {
   id: number;
   nombre: string;
@@ -323,6 +345,8 @@ export interface Candidato {
   perfilActualizado?: string;
   planDesarrollo?: PlanDesarrollo;
   historialPuestos?: HistorialPuesto[];
+  /** Expediente en Honesteles. El colaborador ve el estatus; los motivos, solo su formador. */
+  honesteles?: Honesteles;
   /** Vacante del proceso de movilidad en curso; mientras tenga valor no puede abrir otro. */
   movilidadActivaVacId?: string;
 }

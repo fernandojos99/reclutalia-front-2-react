@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { Send, Sparkles } from "lucide-react";
 import { Modal } from "../common/Modal";
+import { Chip } from "../common/Chip";
+import { nivelMovilidad } from "../../utils/movilidad";
 import type { Candidato, Vacante } from "../../types/models/domain";
 
 interface Props {
@@ -28,6 +30,7 @@ export function InvitarModal({ cand, v, onSend, onClose }: Props) {
   const def = `Hola ${cand.nombre.split(" ")[0]}, revisé tu perfil y creo que encaja muy bien con la vacante "${v.req.titulo}" (${v.req.modalidad}, ${v.req.ubicacionTrabajo}). Me encantaría invitarte a postularte. ¡Saludos!`;
   const [msg, setMsg] = useState(def);
   const [gen, setGen] = useState(false);
+  const mov = nivelMovilidad(cand);
 
   const generar = () => {
     setGen(true);
@@ -37,7 +40,14 @@ export function InvitarModal({ cand, v, onSend, onClose }: Props) {
   return (
     <Modal onClose={onClose}>
       <h3 style={{ marginBottom: 4 }}>Invitar a postularse</h3>
-      <p className="help" style={{ marginBottom: 12 }}>{cand.nombre} recibirá una notificación con tu mensaje en su cuenta, por correo y en WhatsApp.</p>
+      <p className="help" style={{ marginBottom: 8 }}>{cand.nombre} recibirá una notificación con tu mensaje en su cuenta, por correo y en WhatsApp.</p>
+      {/* Semáforo del colaborador antes de mandar la invitación: si su movilidad es baja, conviene
+          saberlo ahora y no después. Los externos no tienen semáforo. */}
+      {mov && (
+        <div className="tagpick" style={{ marginBottom: 12 }}>
+          <Chip tone={mov.tono}>{mov.etiqueta}</Chip>
+        </div>
+      )}
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
         <button className="btn sm" style={{ background: "var(--ai-soft)", color: "var(--ai)", border: "1px solid #C7CBF5" }} onClick={generar} disabled={gen}>
           <Sparkles size={13} /> {gen ? "Generando…" : "Generar mensaje"}

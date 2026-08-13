@@ -229,12 +229,12 @@ export function MisProcesosPage() {
                   <p style={{ fontSize: 12.5, marginTop: 4 }}>Siguiente paso: sube tu documentación para preparar tu contratación. <b>Solo PDF · máximo 1 MB por archivo.</b></p>
                 </div>
                 {CONTRATO_KEYS.map(([k, l]) => {
-                  // El interno ya es empleado: sus documentos están en expediente y puede
-                  // reutilizarlos o actualizarlos. El CURP se excluye: no cambia nunca.
+                  // El interno ya es empleado: TODOS sus documentos están en expediente y puede
+                  // reutilizarlos o actualizarlos, el CURP incluido. Antes se excluía por no
+                  // cambiar nunca, pero era el único documento sin "Usar actual" y la asimetría
+                  // hacía pensar que faltaba subirlo.
                   const enPerfil = (cand.docsPerfil as unknown as Record<string, string | null>)[k];
-                  const delExpediente = cand.tipo === "interno" && k !== "curp"
-                    ? enPerfil ?? `${l}.pdf`
-                    : null;
+                  const delExpediente = cand.tipo === "interno" ? enPerfil ?? `${l}.pdf` : null;
                   return (
                     <UploadPDF key={k} label={l} value={p.docsContrato[k] ?? null}
                       actual={delExpediente}

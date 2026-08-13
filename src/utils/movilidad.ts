@@ -121,6 +121,24 @@ export function accionRecomendada(c: Candidato, vacantes: Vacante[]): AccionReco
 }
 
 /**
+ * Estatus del expediente en Honesteles, la plataforma de actas administrativas.
+ *
+ * Se DERIVA de las actas y del indicador de revisión. No hay ningún campo `estatus` guardado a
+ * propósito: podría decir "sin actas" teniendo dos, que es la contradicción que este módulo evita
+ * en todas partes.
+ *
+ * Devuelve `undefined` cuando no hay expediente sincronizado, que no es lo mismo que estar limpio.
+ */
+export function estatusHonesteles(c: Candidato): { etiqueta: string; tono: string; n: number } | undefined {
+  const h = c.honesteles;
+  if (!h) return undefined;
+  const n = h.actas?.length ?? 0;
+  if (h.enRevision) return { etiqueta: "Acta en revisión", tono: "gold", n };
+  if (!n) return { etiqueta: "Sin actas administrativas", tono: "ok", n: 0 };
+  return { etiqueta: `${n} ${n === 1 ? "acta administrativa" : "actas administrativas"}`, tono: "bad", n };
+}
+
+/**
  * Afinidad entre DOS colaboradores, para cubrir un puesto que va a quedar libre.
  *
  * `matchScore` no sirve aquí: compara un candidato contra un `Requisito`, y el puesto que deja

@@ -74,7 +74,7 @@ export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, arch
           <button className="tab" onClick={() => setVista("perfil")}>Perfil</button>
           <button className="tab on">Ficha de talento</button>
         </div>
-        <FichaTalento cand={cand} verHistorial />
+        <FichaTalento cand={cand} vistaFormador />
       </Modal>
     );
   }

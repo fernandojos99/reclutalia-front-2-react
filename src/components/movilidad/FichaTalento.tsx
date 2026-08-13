@@ -1,14 +1,16 @@
 /**
  * Ficha de talento de un colaborador interno.
  *
- * La usan dos vistas distintas y por eso recibe `verHistorial`: el documento pide que el historial
- * de puestos, postulaciones y ascensos **solo** se vea cuando la abre el formador, no cuando el
- * colaborador consulta su propia ficha.
+ * La usan dos vistas distintas y por eso recibe `vistaFormador`, que gobierna todo lo que el
+ * colaborador NO debe ver de sí mismo en esta pantalla:
+ *   - el **historial** de puestos, postulaciones y ascensos,
+ *   - el **desempeño**, que es la evaluación que hace su jefe sobre él,
+ *   - el **detalle de las actas** de Honesteles; el estatus sí lo ve.
  */
-import { Award, BadgeCheck, Building2, CalendarClock, GraduationCap, Target } from "lucide-react";
+import { Award, BadgeCheck, Building2, CalendarClock, GraduationCap, ShieldCheck, Target } from "lucide-react";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
-import { antiguedad, haceCuanto, nivelMovilidad, nivelDesempeno } from "../../utils/movilidad";
+import { antiguedad, estatusHonesteles, haceCuanto, nivelMovilidad, nivelDesempeno } from "../../utils/movilidad";
 import type { Candidato, CursoItem, HistorialPuesto } from "../../types/models/domain";
 
 const ICONO_CURSO = { curso: GraduationCap, certificado: BadgeCheck, licencia: Award } as const;
@@ -51,13 +53,15 @@ function Cursos({ cursos }: { cursos: CursoItem[] }) {
   );
 }
 
-export function FichaTalento({ cand, verHistorial = false }: { cand: Candidato; verHistorial?: boolean }) {
+export function FichaTalento({ cand, vistaFormador = false }: { cand: Candidato; vistaFormador?: boolean }) {
   const mov = nivelMovilidad(cand);
   const des = nivelDesempeno(cand);
   const anos = antiguedad(cand);
   const cursos = cand.cursos ?? [];
   const intereses = cand.puestosInteres ?? [];
   const historial = cand.historialPuestos ?? [];
+  const honesteles = estatusHonesteles(cand);
+  const actas = cand.honesteles?.actas ?? [];
 
   return (
     <div className="card">
@@ -75,7 +79,8 @@ export function FichaTalento({ cand, verHistorial = false }: { cand: Candidato; 
           )}
           <div className="tagpick" style={{ marginTop: 8 }}>
             <Chip icon={Building2}>{cand.departamento ?? cand.area}</Chip>
-            {des && <Chip tone={des.tono}>Desempeño {des.etiqueta.toLowerCase()}</Chip>}
+            {/* El desempeño es la evaluación de su jefe: el colaborador no la ve aquí. */}
+            {vistaFormador && des && <Chip tone={des.tono}>Desempeño {des.etiqueta.toLowerCase()}</Chip>}
           </div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
@@ -115,8 +120,37 @@ export function FichaTalento({ cand, verHistorial = false }: { cand: Candidato; 
         )}
       </Seccion>
 
+      {/* Honesteles: el estatus lo ven los dos; los motivos de cada acta, solo el formador. */}
+      <Seccion titulo="Honesteles · actas administrativas">
+        {honesteles ? (
+          <div style={{ marginTop: 6 }}>
+            <Chip tone={honesteles.tono} icon={ShieldCheck}>{honesteles.etiqueta}</Chip>
+            <div className="help" style={{ marginTop: 5 }}>
+              Sincronizado el {cand.honesteles!.actualizado}
+            </div>
+            {vistaFormador && actas.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                {actas.map((a, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline", fontSize: 13, marginTop: 5 }}>
+                    <span style={{ color: "var(--gray)" }}>•</span>
+                    <div>
+                      <b>{a.motivo}</b>
+                      <div className="help">
+                        <Chip tone={a.tipo === "grave" ? "bad" : ""}>{a.tipo}</Chip> · {a.fecha}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="help" style={{ marginTop: 6 }}>Sin expediente sincronizado con Honesteles.</div>
+        )}
+      </Seccion>
+
       {/* Solo para el formador: el colaborador no ve su propio historial en esta pantalla. */}
-      {verHistorial && (
+      {vistaFormador && (
         <Seccion titulo="Historial de puestos">
           {historial.length ? (
             <div style={{ marginTop: 6 }}>

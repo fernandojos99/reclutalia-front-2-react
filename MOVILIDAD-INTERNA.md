@@ -49,9 +49,15 @@ que se tomó con la checklist del pipeline (`services/flujoService.ts` en el bac
 razón: el proceso avanza también fuera de la pantalla donde se muestra, así que un valor guardado se
 desincroniza en cuanto alguien actúa por otro camino.
 
-**"Honesteles" quedó fuera.** El documento pedía "Estatus del perfil en Honesteles" en la ficha de
-talento; no existe nada parecido en el código y no se pudo aclarar qué es. **Si se retoma, va en la
-ficha de talento** (Fase 2).
+**Honesteles es la plataforma de actas administrativas** (aclarado después de la Fase 4, ya
+implementado). Criterio de visibilidad: **el estatus lo ven los dos roles, el detalle de las actas
+solo el formador**, igual que el historial de puestos. El **estatus no se guarda, se deriva** de
+`actas` + `enRevision` con `estatusHonesteles()`; un estatus almacenado podría decir "sin actas"
+teniendo dos.
+
+**El desempeño solo lo ve el formador.** Es la evaluación que hace el jefe sobre el colaborador, así
+que no aparece en la ficha que el colaborador ve de sí mismo. La prop `vistaFormador` de
+`FichaTalento` gobierna las tres cosas: historial, desempeño y detalle de actas.
 
 **Terminología corregida.** El documento decía "Pull de talento"; `CLAUDE.md` obliga a **"Marketplace
 de talento"**, nunca "pool". También "Quote de movilidad" → **"Cuota de movilidad"**.
@@ -311,16 +317,39 @@ al repetirla.
 
 ---
 
+## Ajustes posteriores (13 ago 2026) — hechos
+
+Cinco cambios pedidos tras revisar las cuatro fases:
+
+- **Honesteles implementado.** Tipos `ActaAdministrativa` y `Honesteles` en los dos `domain.ts`,
+  declarados en `candidatoFieldsSchema`, y los 9 internos sembrados: Marcos (24) con dos actas,
+  Pablo (32) con una leve, Óscar (18) con una en revisión y el resto con expediente limpio.
+  Sección nueva en `FichaTalento` y helper `estatusHonesteles()` en `utils/movilidad.ts`.
+- **Desempeño oculto al colaborador.** `verHistorial` pasó a llamarse **`vistaFormador`** en
+  `FichaTalento` y ahora gobierna historial, desempeño y detalle de actas.
+- **Semáforo en el Marketplace y al invitar.** Chip de movilidad en la columna de acciones de
+  `poolCard` (`VacanteDetailPage`) y en `InvitarModal`. Solo internos.
+- **Columna ACTAS** en `TablaEquipo`, entre Semáforo y Estatus.
+- **El agente tiene en cuenta las actas.** `movilidadService.ficha()` devuelve **cuántas actas hay y
+  si alguna está en revisión, nunca los motivos**: el agente habla con el colaborador, que tampoco
+  los ve. Regla añadida al prompt para que lo mencione de forma factual y no invente motivos.
+- **CURP igualado al resto.** Se quitó la exclusión `k !== "curp"` de `MisProcesosPage`; era el único
+  documento sin "Actualizar / Ver / Usar actual" para internos.
+
+**Verificado:** espejo de los tipos nuevos idéntico entre repos; los tres estatus derivados correctos
+sobre la semilla (con concordancia singular/plural); guardado real por `PUT /api/candidatos/24` que
+conserva el expediente entero; y `GET /api/movilidad/24/ficha` devuelve `{actas: 2, ...}` **sin
+ningún motivo**.
+
+---
+
 ## Lo que queda
 
-**Nada del documento salvo dos cosas.**
+**Una sola cosa del documento original:**
 
-1. **"Honesteles"** — el documento pedía "Estatus del perfil en Honesteles" en la ficha de talento.
-   Quedó fuera porque no se pudo aclarar qué es. Si se retoma, va en
-   `components/movilidad/FichaTalento.tsx`.
-2. **"[F] Agente traduce el descriptivo de vacante, el formador confirma o edita"** (ETAPA 3) — la
-   frase es ambigua y no se implementó. Ya existen `clasificar_vacante`, `perfilIA` y `tituloIA`,
-   que hacen algo parecido; conviene aclarar qué se esperaba antes de construir nada.
+**"[F] Agente traduce el descriptivo de vacante, el formador confirma o edita"** (ETAPA 3) — la frase
+es ambigua y no se implementó. Ya existen `clasificar_vacante`, `perfilIA` y `tituloIA`, que hacen
+algo parecido; conviene aclarar qué se esperaba antes de construir nada.
 
 ### Ideas anotadas, no pedidas
 
