@@ -197,6 +197,11 @@ button.fase-sub.on{background:var(--accent-dark-bg);border-color:var(--accent-da
 .tab:disabled{opacity:0.4;}
 .field{margin-bottom:14px;}
 .help{font-size:11.5px;color:var(--gray);margin-top:4px;}
+/* Semáforo de movilidad en la fila del Marketplace del formador: oculto a petición, no borrado,
+   porque puede volver a hacer falta. Para restaurarlo basta con borrar esta regla; el marcado sigue
+   en `poolCard` de pages/formador/VacanteDetailPage.tsx. */
+.semaforo-pool{display:none;}
+
 .tagpick{display:flex;flex-wrap:wrap;gap:6px;}
 .tag{border:1px solid var(--line);background:var(--paper);border-radius:var(--r-pill);padding:5px 12px;font-size:12px;font-weight:500;color:var(--ink2);}
 .tag.on{background:var(--accent-dark-bg);color:var(--gold);border-color:var(--accent-dark-bg);font-weight:700;}
