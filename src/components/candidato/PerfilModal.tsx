@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { ComentariosCandidato } from "./ComentariosCandidato";
 import { FichaTalento } from "../movilidad/FichaTalento";
+import { nivelMovilidad } from "../../utils/movilidad";
 import { Modal } from "../common/Modal";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
@@ -95,6 +96,9 @@ export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, arch
           <div style={{ color: "var(--gray)", fontSize: 12.5 }}>{cand.area}</div>
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
             <Chip tone={cand.tipo === "interno" ? "gold" : ""} icon={Building2}>{cand.tipo === "interno" ? "Candidato interno" : "Candidato externo"}</Chip>
+            {/* Semáforo de movilidad también aquí, en la pestaña de perfil: el formador lo consulta
+                desde el Marketplace y no siempre entra a la ficha de talento. */}
+            {nivelMovilidad(cand) && <Chip tone={nivelMovilidad(cand)!.tono}>{nivelMovilidad(cand)!.etiqueta}</Chip>}
             <Chip icon={MapPin}>{cand.ciudad}</Chip>
             <Chip icon={Briefcase}>{cand.exp} años de experiencia</Chip>
             <Chip icon={GraduationCap}>{String(cand.edu ?? "")}</Chip>

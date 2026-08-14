@@ -30,15 +30,13 @@ export const ESTADOS_MOVILIDAD = [
 ] as const;
 
 /** Acción recomendada al formador. También derivada; ver `utils/movilidad.ts`. */
-export const ACCIONES_RECOMENDADAS = [
-  "Transferir", "Promover", "Formar", "Desvincular", "Agradecer", "Sin acción",
-] as const;
+export const ACCIONES_RECOMENDADAS = ["Transferir", "Promover", "Formar", "Desvincular"] as const;
 
 /** Afinidad a partir de la cual una vacante cuenta como oportunidad real. */
 export const UMBRAL_AFINIDAD = 70;
 
-/** Días sin tocar la ficha a partir de los cuales el colaborador cuenta como "Inactivo". */
-export const DIAS_PERFIL_INACTIVO = 30;
+/** Días sin tocar la ficha a partir de los cuales el colaborador cuenta como "Inactivo": 6 meses. */
+export const DIAS_PERFIL_INACTIVO = 180;
 
 export const FASES = [
   { nombre: "Búsqueda", subs: ["Publicación", "Marketplace de talento"] },

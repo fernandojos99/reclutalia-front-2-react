@@ -1,20 +1,21 @@
 /**
- * Acciones administrativas de la demo. `resetSeed` reinicia la BD al estado de `seed.ts`
- * (endpoint destructivo protegido por token). El token va en el front por ser una DEMO.
+ * Acciones administrativas de la demo. Las dos son destructivas y ninguna pide token: se quitó a
+ * propósito para que funcionen en local sin configurar un secreto.
+ *
+ *   - `resetSeed`  → devuelve la base al estado de `seed.ts`, como recién instalada.
+ *   - `borrarTodo` → conserva formadores, candidatos y vacantes, y borra todo el trámite.
  */
 import { API_BASE_URL } from "../config/api";
 
-const RESET_TOKEN = "reclutalia-reset-2026";
+async function postAdmin(ruta: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/admin/${ruta}`, { method: "POST" });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error((data && (data.message as string)) || `Error HTTP ${res.status}`);
+  }
+}
 
 export const adminService = {
-  async resetSeed(): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/admin/reset-seed`, {
-      method: "POST",
-      headers: { "x-reset-token": RESET_TOKEN },
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      throw new Error((data && (data.message as string)) || `Error HTTP ${res.status}`);
-    }
-  },
+  resetSeed: () => postAdmin("reset-seed"),
+  borrarTodo: () => postAdmin("borrar-todo"),
 };

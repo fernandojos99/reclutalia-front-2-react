@@ -39,6 +39,30 @@ export function resetSessionMovilidad(candId: number): void {
   localStorage.removeItem(`${SESSION_KEY}_${candId}`);
 }
 
+/** Cierre del formador: agradece al colaborador y deja el resumen en su historial. */
+export async function agradecerColaborador(
+  cid: number, formadorId: string, mensaje: string, resumen: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/movilidad/${cid}/agradecer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ formadorId, mensaje, resumen }),
+  });
+  if (!res.ok) {
+    const d = await res.json().catch(() => null);
+    throw new Error((d && (d.message as string)) || `Error HTTP ${res.status}`);
+  }
+}
+
+/**
+ * Dispara el barrido de "Inactivo" del equipo. Se llama al abrir el módulo porque a ese estatus se
+ * llega por el paso del tiempo, sin que nadie actúe, así que ningún evento puede detectarlo.
+ */
+export async function barrerInactivos(formadorId: string): Promise<void> {
+  await fetch(`${API_BASE_URL}/movilidad/equipo/${formadorId}/barrer-inactivos`, { method: "POST" })
+    .catch(() => { /* el barrido es accesorio: si falla, la pantalla se ve igual */ });
+}
+
 export function enviarMensajeMovilidad(
   payload: MovilidadPayload,
   onEvent: (e: MovilidadEvent) => void,

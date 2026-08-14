@@ -5,17 +5,21 @@
  * El **estatus** y la **acción recomendada** se calculan aquí y ahora (`utils/movilidad.ts`), no se
  * leen de ningún campo guardado: el proceso del colaborador avanza también fuera de esta pantalla,
  * así que un valor almacenado se desincronizaría en cuanto alguien actuara por otro camino.
+ *
+ * Es una tabla ancha a propósito. Cada columna lleva su `minWidth` para que no se aplaste el
+ * contenido, y el scroll horizontal lo pone `.table-wrap`.
  */
+import { HandHeart, Share2 } from "lucide-react";
 import { Chip } from "../common/Chip";
+import { InfoTip } from "../common/InfoTip";
 import {
-  accionRecomendada, antiguedad, avancePlan, estatusHonesteles, estatusMovilidad, haceCuanto,
-  nivelDesempeno, nivelMovilidad, rankingVacantes, TONO_ACCION,
+  accionRecomendada, antiguedad, estatusHonesteles, estatusMovilidad, haceCuanto,
+  nivelDesempeno, nivelMovilidad, vacantesAfines, TONO_ACCION, type EstadoMovilidad,
 } from "../../utils/movilidad";
-import { UMBRAL_AFINIDAD } from "../../constants/catalogos";
 import type { Candidato, Vacante } from "../../types/models/domain";
 
 /** Tono del estatus: lo que pide atención en rojo, lo que ya está en marcha en verde. */
-const TONO_ESTATUS: Record<string, string> = {
+const TONO_ESTATUS: Record<EstadoMovilidad, string> = {
   Inactivo: "bad",
   Actualizado: "",
   "En búsqueda": "gold",
@@ -24,17 +28,40 @@ const TONO_ESTATUS: Record<string, string> = {
   Contratado: "ok",
 };
 
+/** Qué significa cada estatus. Se muestra al pulsar el "?" de la columna. */
+const QUE_SIGNIFICA: Record<EstadoMovilidad, string> = {
+  Inactivo: "No ha actualizado su ficha de talento en más de 6 meses.",
+  Actualizado: "Tiene su ficha al día, pero todavía no ha empezado a buscar.",
+  "En búsqueda": "Está explorando su siguiente puesto con el agente de movilidad.",
+  "En proceso": "Se postuló y ya pasó su primera entrevista con IA. Desde aquí no puede postularse a otras vacantes.",
+  Seleccionado: "Fue elegido como candidato ideal en una vacante.",
+  Contratado: "Aceptó su carta oferta y está en proceso de transferencia.",
+};
+
+/** Celda de tags con un pie pequeño; se usa en áreas de experiencia y habilidades. */
+function Tags({ items, pie, vacio }: { items: string[]; pie?: string; vacio: string }) {
+  if (!items.length) return <span className="help">{vacio}</span>;
+  return (
+    <>
+      <div className="tagpick">{items.map((t) => <Chip key={t}>{t}</Chip>)}</div>
+      {pie && <div className="help" style={{ marginTop: 4 }}>{pie}</div>}
+    </>
+  );
+}
+
 interface Props {
   equipo: Candidato[];
   vacantes: Vacante[];
   onVerPerfil: (c: Candidato) => void;
+  onRecomendar: (c: Candidato) => void;
+  onAgradecer: (c: Candidato) => void;
 }
 
-export function TablaEquipo({ equipo, vacantes, onVerPerfil }: Props) {
+export function TablaEquipo({ equipo, vacantes, onVerPerfil, onRecomendar, onAgradecer }: Props) {
   if (!equipo.length) {
     return (
       <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
-        Todavía no tienes colaboradores internos a tu cargo.
+        Ningún colaborador coincide con los filtros seleccionados.
       </div>
     );
   }
@@ -42,12 +69,32 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil }: Props) {
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>
       <div className="table-wrap">
-        <table className="table">
+        <table className="table" style={{ minWidth: 1680 }}>
           <thead>
             <tr>
-              <th>NOMBRE</th><th>PUESTO</th><th>ESPECIALIDADES</th><th>DESEMPEÑO</th>
-              <th>HABILIDADES</th><th>INTERÉS</th><th>SEMÁFORO</th><th>ACTAS</th><th>ESTATUS</th>
-              <th>ACCIÓN RECOMENDADA</th><th>ÚLTIMA ACTUALIZACIÓN</th><th></th>
+              <th style={{ minWidth: 190 }}>NOMBRE</th>
+              <th style={{ minWidth: 180 }}>PUESTO</th>
+              <th style={{ minWidth: 210 }}>ÁREA DE EXPERIENCIA</th>
+              <th style={{ minWidth: 110 }}>DESEMPEÑO</th>
+              <th style={{ minWidth: 260 }}>HABILIDADES</th>
+              <th style={{ minWidth: 170 }}>INTERÉS</th>
+              <th style={{ minWidth: 110 }}>SEMÁFORO</th>
+              <th style={{ minWidth: 110 }}>ACTAS</th>
+              <th style={{ minWidth: 120 }}>VACANTES AFINES</th>
+              <th style={{ minWidth: 150 }}>
+                ESTATUS{" "}
+                <InfoTip etiqueta="Qué significa cada estatus">
+                  <b style={{ display: "block", marginBottom: 6 }}>Estatus del colaborador</b>
+                  {(Object.keys(QUE_SIGNIFICA) as EstadoMovilidad[]).map((e) => (
+                    <div key={e} style={{ marginBottom: 5, lineHeight: 1.45 }}>
+                      <b>{e}</b> — {QUE_SIGNIFICA[e]}
+                    </div>
+                  ))}
+                </InfoTip>
+              </th>
+              <th style={{ minWidth: 150 }}>ACCIÓN RECOMENDADA</th>
+              <th style={{ minWidth: 140 }}>ÚLTIMA ACTUALIZACIÓN</th>
+              <th style={{ minWidth: 210 }}></th>
             </tr>
           </thead>
           <tbody>
@@ -56,9 +103,8 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil }: Props) {
               const des = nivelDesempeno(c);
               const estatus = estatusMovilidad(c, vacantes);
               const accion = accionRecomendada(c, vacantes);
-              const plan = avancePlan(c);
               const honesteles = estatusHonesteles(c);
-              const mejor = rankingVacantes(c, vacantes)[0];
+              const afines = vacantesAfines(c, vacantes);
               const intereses = c.puestosInteres ?? [];
 
               return (
@@ -71,43 +117,45 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil }: Props) {
                     {c.puesto}
                     <div className="help">{antiguedad(c) || "sin antigüedad registrada"}</div>
                   </td>
-                  <td>
-                    {c.esp.slice(0, 2).join(", ") || "—"}
-                    <div className="help">{c.exp} años de experiencia</div>
-                  </td>
+                  <td><Tags items={c.esp} pie={`${c.exp} años de experiencia`} vacio="Sin áreas registradas" /></td>
                   <td>{des ? <Chip tone={des.tono}>{des.etiqueta}</Chip> : <span className="help">—</span>}</td>
-                  {/* "Habilidades" no venía definida en el documento: se muestran las técnicas y,
-                      si hay plan, cuánto lleva cubierto de él. */}
-                  <td>
-                    {c.hard.slice(0, 2).join(", ") || "—"}
-                    <div className="help">
-                      {plan.total ? `${plan.hechas} de ${plan.total} del plan` : "sin plan"}
-                    </div>
-                  </td>
+                  <td><Tags items={[...c.hard, ...c.soft]} vacio="Sin habilidades registradas" /></td>
                   <td>
                     {intereses.length ? intereses[0] : <span className="help">Sin definir</span>}
                     {intereses.length > 1 && <div className="help">y {intereses.length - 1} más</div>}
                   </td>
                   <td>{mov ? <Chip tone={mov.tono}>{mov.corto}</Chip> : <span className="help">—</span>}</td>
-                  {/* Honesteles. En la tabla basta el recuento; los motivos están en la ficha. */}
+                  {/* Honesteles: en la tabla basta el recuento; los motivos están en la ficha. */}
                   <td>
                     {honesteles
                       ? <Chip tone={honesteles.tono}>{honesteles.n ? honesteles.n : honesteles.tono === "gold" ? "En revisión" : "Ninguna"}</Chip>
                       : <span className="help">—</span>}
                   </td>
-                  <td><Chip tone={TONO_ESTATUS[estatus] ?? ""}>{estatus}</Chip></td>
                   <td>
-                    <Chip tone={TONO_ACCION[accion]}>{accion}</Chip>
-                    {mejor && mejor.afinidad >= UMBRAL_AFINIDAD && (
-                      <div className="help">{mejor.afinidad}% en {mejor.v.req.titulo}</div>
+                    {afines
+                      ? <Chip tone="ok">{afines}</Chip>
+                      : <span className="help">Ninguna</span>}
+                    <div className="help">con más del 70%</div>
+                  </td>
+                  <td><Chip tone={TONO_ESTATUS[estatus]}>{estatus}</Chip></td>
+                  <td><Chip tone={TONO_ACCION[accion]}>{accion}</Chip></td>
+                  <td>
+                    {c.perfilActualizado ?? "—"}
+                    <div className="help">{haceCuanto(c.perfilActualizado)}</div>
+                  </td>
+                  <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                    <button className="btn ghost sm" onClick={() => onVerPerfil(c)}>Ver perfil</button>{" "}
+                    <button className="btn ghost sm" title="Compartir este perfil con otro formador"
+                      onClick={() => onRecomendar(c)}><Share2 size={12} /> Recomendar</button>
+                    {/* Solo cuando ya se va: es el momento de cerrar bien con él. */}
+                    {estatus === "Contratado" && (
+                      <>
+                        {" "}
+                        <button className="btn gold sm" onClick={() => onAgradecer(c)}>
+                          <HandHeart size={12} /> Agradecer
+                        </button>
+                      </>
                     )}
-                  </td>
-                  <td>
-                    {haceCuanto(c.perfilActualizado)}
-                    <div className="help">{c.perfilActualizado ?? "—"}</div>
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button className="btn ghost sm" onClick={() => onVerPerfil(c)}>Ver perfil</button>
                   </td>
                 </tr>
               );

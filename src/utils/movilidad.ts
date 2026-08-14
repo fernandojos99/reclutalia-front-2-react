@@ -16,8 +16,7 @@ import type { Candidato, Vacante } from "../types/models/domain";
 export type EstadoMovilidad =
   | "Inactivo" | "Actualizado" | "En búsqueda" | "En proceso" | "Seleccionado" | "Contratado";
 
-export type AccionRecomendada =
-  | "Transferir" | "Promover" | "Formar" | "Desvincular" | "Agradecer" | "Sin acción";
+export type AccionRecomendada = "Transferir" | "Promover" | "Formar" | "Desvincular";
 
 /** Entrada del catálogo del semáforo, o undefined si el candidato no tiene movilidad definida. */
 export const nivelMovilidad = (c: Candidato) => MOVILIDAD.find((m) => m.nivel === c.movilidad);
@@ -47,7 +46,7 @@ export function haceCuanto(fecha?: string): string {
   return `hace ${m} ${m === 1 ? "mes" : "meses"}`;
 }
 
-/** El colaborador lleva más de un mes sin tocar su ficha. */
+/** El colaborador lleva más de 6 meses sin tocar su ficha. */
 export const perfilInactivo = (c: Candidato): boolean =>
   !c.perfilActualizado || diasDesde(c.perfilActualizado) > DIAS_PERFIL_INACTIVO;
 
@@ -99,12 +98,11 @@ export function estatusMovilidad(c: Candidato, vacantes: Vacante[]): EstadoMovil
 /**
  * Acción que se le recomienda al formador.
  *
- * Las reglas del documento original no cubren todos los cruces posibles (p. ej. movilidad alta con
- * desempeño medio y sin vacantes afines), así que se evalúan EN ORDEN y lo que no encaje en ninguna
- * cae en "Sin acción" en vez de forzar una recomendación equivocada.
+ * Las reglas no cubren todos los cruces posibles, así que se evalúan EN ORDEN y lo que no encaje en
+ * ninguna cae en **"Formar"**: ante la duda, desarrollar a la persona.
  *
- * "Agradecer" no venía definida: se interpreta como el colaborador que rinde alto pero tiene
- * movilidad baja — no se va a mover, así que toca reconocerlo y retenerlo.
+ * "Agradecer" ya no está aquí. Dejó de ser una recomendación y pasó a ser un botón que aparece
+ * cuando el colaborador queda "Contratado" en otra vacante.
  */
 export function accionRecomendada(c: Candidato, vacantes: Vacante[]): AccionRecomendada {
   const mov = c.movilidad;
@@ -114,11 +112,14 @@ export function accionRecomendada(c: Candidato, vacantes: Vacante[]): AccionReco
 
   if (mov === "alta" && des === "medio" && actualizado && oportunidad) return "Transferir";
   if (mov === "alta" && des === "alto" && actualizado && !oportunidad) return "Promover";
-  if (mov === "media" && des === "medio") return "Formar";
   if (mov === "baja" && des === "bajo" && !actualizado && !oportunidad) return "Desvincular";
-  if (mov === "baja" && des === "alto") return "Agradecer";
-  return "Sin acción";
+  // Ante la duda, desarrollar: es el default del documento y evita dejar filas sin recomendación.
+  return "Formar";
 }
+
+/** Cuántas vacantes abiertas superan el umbral de afinidad con este colaborador. */
+export const vacantesAfines = (c: Candidato, vacantes: Vacante[]): number =>
+  rankingVacantes(c, vacantes).filter((r) => r.afinidad >= UMBRAL_AFINIDAD).length;
 
 /**
  * Estatus del expediente en Honesteles, la plataforma de actas administrativas.
@@ -183,6 +184,4 @@ export const TONO_ACCION: Record<AccionRecomendada, string> = {
   Promover: "ok",
   Formar: "gold",
   Desvincular: "bad",
-  Agradecer: "gold",
-  "Sin acción": "",
 };
