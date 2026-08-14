@@ -153,8 +153,14 @@ export function VacanteDetailPage() {
       <Avatar nombre={c.nombre} />
       <div className="trow-body" style={{ flex: 1, minWidth: 0 }}>
         <b style={{ fontSize: 14 }}>{c.nombre}</b> <Chip tone={c.tipo === "interno" ? "gold" : ""}>{c.tipo}</Chip>
-        {/* El semáforo, pegado al tipo: solo los internos lo tienen y así se leen juntos. */}
-        {nivelMovilidad(c) && <Chip tone={nivelMovilidad(c)!.tono}>{nivelMovilidad(c)!.etiqueta}</Chip>}
+        {/* El semáforo, pegado al tipo: solo los internos lo tienen y así se leen juntos.
+            OCULTO por CSS (`.semaforo-pool` en styles/base.css), no borrado: se pidió quitarlo de
+            esta fila pero puede volver a hacer falta. Para restaurarlo, borra esa regla. */}
+        {nivelMovilidad(c) && (
+          <span className="semaforo-pool">
+            <Chip tone={nivelMovilidad(c)!.tono}>{nivelMovilidad(c)!.etiqueta}</Chip>
+          </span>
+        )}
         {favs.includes(cid) && <Chip tone="bad"><Heart size={11} /> Favorito</Chip>}
         <div style={{ fontSize: 12.5, color: "var(--gray)" }}>{c.puesto} · {c.exp} años · {c.ciudad}</div>
         <div className="tagpick" style={{ marginTop: 5 }}>{c.esp.slice(0, 2).map((e) => <span key={e} className="chip">{e}</span>)}{c.hard.slice(0, 2).map((e) => <span key={e} className="chip">{e}</span>)}</div>
