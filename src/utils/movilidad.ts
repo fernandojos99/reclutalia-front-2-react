@@ -6,20 +6,46 @@
  * pantalla donde se muestran, así que un valor guardado se desincronizaría en cuanto alguien
  * actuara por otro camino.
  *
- * La única excepción es el semáforo (`c.movilidad`), que sí es un dato: lo decide el administrador.
+ * El semáforo también se calcula (Honesteles + desempeño); `c.movilidad` es solo el OVERRIDE que
+ * puede fijar el administrador, y cuando existe manda sobre el cálculo.
  */
 import { MOVILIDAD, DESEMPENO, PIPE_IDX, UMBRAL_AFINIDAD, DIAS_PERFIL_INACTIVO } from "../constants/catalogos";
 import { diasDesde, parseFechaMx } from "./format";
 import { matchScore } from "./match";
-import type { Candidato, Vacante } from "../types/models/domain";
+import type { Candidato, NivelMovilidad, Vacante } from "../types/models/domain";
 
 export type EstadoMovilidad =
   | "Inactivo" | "Actualizado" | "En búsqueda" | "En proceso" | "Seleccionado" | "Contratado";
 
 export type AccionRecomendada = "Transferir" | "Promover" | "Formar" | "Desvincular";
 
-/** Entrada del catálogo del semáforo, o undefined si el candidato no tiene movilidad definida. */
-export const nivelMovilidad = (c: Candidato) => MOVILIDAD.find((m) => m.nivel === c.movilidad);
+/** ¿Tiene expediente abierto en Honesteles? Un acta en revisión cuenta igual que una levantada. */
+export const tieneHonesteles = (c: Candidato): boolean =>
+  !!c.honesteles && (!!c.honesteles.enRevision || (c.honesteles.actas?.length ?? 0) > 0);
+
+/**
+ * Semáforo que sale del cálculo:
+ *
+ *   - con cualquier acta en Honesteles → **baja**, sin importar el desempeño;
+ *   - sin actas → sigue al desempeño (alto → alta, medio → media, bajo → baja).
+ *
+ * Devuelve `undefined` si no hay desempeño registrado: sin ese dato no hay semáforo que dar.
+ */
+export function movilidadCalculada(c: Candidato): NivelMovilidad | undefined {
+  if (tieneHonesteles(c)) return "baja";
+  if (!c.desempeno) return undefined;
+  return c.desempeno === "alto" ? "alta" : c.desempeno === "medio" ? "media" : "baja";
+}
+
+/**
+ * El semáforo que se pinta en todas partes: el override del administrador si lo hay, y si no el
+ * calculado. **Nunca leas `c.movilidad` directamente**: eso es solo el override.
+ */
+export const movilidadEfectiva = (c: Candidato): NivelMovilidad | undefined =>
+  c.movilidad ?? movilidadCalculada(c);
+
+/** Entrada del catálogo del semáforo efectivo, o undefined si no se puede determinar. */
+export const nivelMovilidad = (c: Candidato) => MOVILIDAD.find((m) => m.nivel === movilidadEfectiva(c));
 
 export const nivelDesempeno = (c: Candidato) => DESEMPENO.find((d) => d.nivel === c.desempeno);
 
@@ -105,7 +131,8 @@ export function estatusMovilidad(c: Candidato, vacantes: Vacante[]): EstadoMovil
  * cuando el colaborador queda "Contratado" en otra vacante.
  */
 export function accionRecomendada(c: Candidato, vacantes: Vacante[]): AccionRecomendada {
-  const mov = c.movilidad;
+  // El efectivo, no el override: si no, un colaborador sin override nunca encajaría en las reglas.
+  const mov = movilidadEfectiva(c);
   const des = c.desempeno;
   const actualizado = !perfilInactivo(c);
   const oportunidad = tieneOportunidad(c, vacantes);

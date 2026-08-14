@@ -17,6 +17,8 @@ export interface Notificacion {
   vacId: string;
   fecha: string;
   leida: boolean;
+  /** Acción que el destinatario puede lanzar desde la propia notificación. */
+  accion?: { tipo: "agradecer"; cid: number };
 }
 
 export interface Requisito {
@@ -242,7 +244,10 @@ export interface DocsPerfil {
  * Espejo de `back/src/types/domain.ts`. Solo tiene sentido en candidatos `interno`.
  */
 
-/** Semáforo de elegibilidad. Es un DATO que edita el administrador, no un cálculo. */
+/**
+ * Semáforo de elegibilidad. Se CALCULA a partir de Honesteles y el desempeño
+ * (`utils/movilidad.ts`); el campo del candidato es solo el override del administrador.
+ */
 export type NivelMovilidad = "alta" | "media" | "baja";
 
 /** Desempeño en el puesto actual. Sin `ñ`: ningún identificador del dominio la usa. */
@@ -278,10 +283,14 @@ export interface HistorialPuesto {
   motivo: "ingreso" | "ascenso" | "movilidad";
 }
 
-/** Acta administrativa levantada en Honesteles. */
+/**
+ * Acta administrativa levantada en Honesteles.
+ *
+ * `motivo` sale de la lista cerrada `MOTIVOS_HONESTELES`. No hay gravedad: cualquier acta baja el
+ * semáforo a rojo por igual.
+ */
 export interface ActaAdministrativa {
   motivo: string;
-  tipo: "leve" | "grave";
   /** Fecha del acta en formato es-MX ("14 mar 2025"). */
   fecha: string;
 }
@@ -333,7 +342,10 @@ export interface Candidato {
   docsPerfil: DocsPerfil;
 
   /* ── Movilidad interna: solo internos. Ver los tipos de arriba. ── */
-  /** Semáforo de elegibilidad. Lo edita el administrador; NO se recalcula solo. */
+  /**
+   * OVERRIDE del semáforo. Si está puesto manda sobre el cálculo; si no, se deriva de Honesteles y
+   * el desempeño. Usa siempre `movilidadEfectiva()` para leerlo, nunca este campo a pelo.
+   */
   movilidad?: NivelMovilidad;
   desempeno?: NivelDesempeno;
   cursos?: CursoItem[];

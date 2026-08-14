@@ -4,6 +4,7 @@ import { CheckCircle2 } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { TagPicker, UploadPDF } from "../ui/uploads";
 import { AREAS, EDUCACION, CIUDADES, ESPECIALIDADES, HARD_SKILLS, SOFT_SKILLS, MOVILIDAD, DESEMPENO } from "../../constants/catalogos";
+import { movilidadCalculada } from "../../utils/movilidad";
 import type { Candidato } from "../../types/models/domain";
 
 /** Candidato nuevo con defaults (los campos de perfil se rellenan al guardar en backend). */
@@ -23,6 +24,8 @@ export function CandidatoForm({ inicial, onSave, onClose }: {
   const [c, setC] = useState<Candidato>(inicial || candidatoVacio());
   const set = <K extends keyof Candidato>(k: K, v: Candidato[K]) => setC((x) => ({ ...x, [k]: v }));
   const valido = c.nombre.trim() && c.puesto.trim() && c.esp.length;
+  /** Qué semáforo saldría del cálculo con los datos actuales del formulario. */
+  const calculado = MOVILIDAD.find((m) => m.nivel === movilidadCalculada(c));
 
   return (
     <Modal onClose={onClose} wide>
@@ -39,15 +42,23 @@ export function CandidatoForm({ inicial, onSave, onClose }: {
       </div>
 
       {/* Movilidad interna: solo aplica a internos, así que los campos aparecen al marcar el tipo.
-          El semáforo es un DATO que decide el administrador, no un cálculo del sistema. */}
+          El semáforo se calcula solo; el campo de abajo es únicamente el override. */}
       {c.tipo === "interno" && (
         <div className="grid3">
+          {/* El semáforo se calcula solo (Honesteles + desempeño). Este campo es el OVERRIDE:
+              vacío = automático. Se muestra qué saldría del cálculo para que se vea cuándo se está
+              sobrescribiendo y con qué. */}
           <div className="field">
             <label>Semáforo de movilidad</label>
             <select value={c.movilidad ?? ""} onChange={(e) => set("movilidad", (e.target.value || undefined) as Candidato["movilidad"])}>
-              <option value="">Sin definir</option>
-              {MOVILIDAD.map((m) => <option key={m.nivel} value={m.nivel}>{m.etiqueta}</option>)}
+              <option value="">Automático (calculado)</option>
+              {MOVILIDAD.map((m) => <option key={m.nivel} value={m.nivel}>{m.etiqueta} · fijado a mano</option>)}
             </select>
+            <div className="help">
+              {calculado
+                ? `El cálculo da "${calculado.etiqueta.toLowerCase()}".${c.movilidad && c.movilidad !== calculado.nivel ? " Lo estás sobrescribiendo." : ""}`
+                : "Sin desempeño registrado no hay cálculo posible; fíjalo a mano o registra el desempeño."}
+            </div>
           </div>
           <div className="field">
             <label>Desempeño</label>

@@ -7,7 +7,7 @@
  *   - el **desempeño**, que es la evaluación que hace su jefe sobre él,
  *   - el **detalle de las actas** de Honesteles; el estatus sí lo ve.
  */
-import { Award, BadgeCheck, Building2, CalendarClock, GraduationCap, ShieldCheck, Target } from "lucide-react";
+import { Award, BadgeCheck, Building2, CalendarClock, GraduationCap, Pencil, ShieldCheck, Target } from "lucide-react";
 import { Avatar } from "../common/Avatar";
 import { Chip } from "../common/Chip";
 import { antiguedad, estatusHonesteles, haceCuanto, nivelMovilidad, nivelDesempeno } from "../../utils/movilidad";
@@ -53,7 +53,12 @@ function Cursos({ cursos }: { cursos: CursoItem[] }) {
   );
 }
 
-export function FichaTalento({ cand, vistaFormador = false }: { cand: Candidato; vistaFormador?: boolean }) {
+export function FichaTalento({ cand, vistaFormador = false, onEditar }: {
+  cand: Candidato;
+  vistaFormador?: boolean;
+  /** Si se pasa, aparece el botón "Editar". Solo tiene sentido en la ficha del propio colaborador. */
+  onEditar?: () => void;
+}) {
   const mov = nivelMovilidad(cand);
   const des = nivelDesempeno(cand);
   const anos = antiguedad(cand);
@@ -90,6 +95,11 @@ export function FichaTalento({ cand, vistaFormador = false }: { cand: Candidato;
           <div className="help" style={{ marginTop: 6 }}>
             Ficha actualizada {haceCuanto(cand.perfilActualizado)}
           </div>
+          {onEditar && (
+            <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={onEditar}>
+              <Pencil size={12} /> Editar
+            </button>
+          )}
         </div>
       </div>
 
@@ -135,9 +145,7 @@ export function FichaTalento({ cand, vistaFormador = false }: { cand: Candidato;
                     <span style={{ color: "var(--gray)" }}>•</span>
                     <div>
                       <b>{a.motivo}</b>
-                      <div className="help">
-                        <Chip tone={a.tipo === "grave" ? "bad" : ""}>{a.tipo}</Chip> · {a.fecha}
-                      </div>
+                      <div className="help">{a.fecha}</div>
                     </div>
                   </div>
                 ))}

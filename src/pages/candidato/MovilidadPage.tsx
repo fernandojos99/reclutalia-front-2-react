@@ -7,7 +7,7 @@
  * dato de la ficha y no depende del agente.
  */
 import { useState } from "react";
-import { Calendar, FileText, MapPin } from "lucide-react";
+import { Calendar, FileText, Heart, MapPin } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
@@ -17,12 +17,13 @@ import { MatchRing } from "../../components/common/MatchRing";
 import { FichaTalento } from "../../components/movilidad/FichaTalento";
 import { PlanDesarrolloPanel } from "../../components/movilidad/PlanDesarrolloPanel";
 import { AgentChat } from "../../components/agente/AgentChat";
+import { PerfilEditor } from "../../components/candidato/PerfilEditor";
 import { DetalleVacanteModal, AplicarModal } from "../../components/candidato/buscarModals";
 import { enviarMensajeMovilidad, getSessionMovilidad } from "../../services/movilidadAgenteService";
 import { money } from "../../utils/format";
 import { procesoActivoEnOtra } from "../../utils/pipeline";
 import { rankingVacantes } from "../../utils/movilidad";
-import { UMBRAL_AFINIDAD } from "../../constants/catalogos";
+import { UMBRAL_AFINIDAD, UMBRAL_IDEAL } from "../../constants/catalogos";
 import type { Candidato, Vacante } from "../../types/models/domain";
 
 const SECCIONES = ["Ficha de talento", "Agente de movilidad", "Ranking de vacantes"] as const;
@@ -49,8 +50,23 @@ Qué hace:
 
 Qué no hace: no decide tu semáforo de movilidad ni te postula sin que se lo pidas.`;
 
+/**
+ * Los tres bloques del ranking. El orden es de más a menos afín, y los umbrales salen del catálogo
+ * para que no queden dos números sueltos en la interfaz.
+ */
+const BLOQUES = [
+  { titulo: "Ideales", desc: `Afinidad del ${UMBRAL_IDEAL}% en adelante`, min: UMBRAL_IDEAL, tono: "ok" },
+  { titulo: "Adecuadas", desc: `Entre ${UMBRAL_AFINIDAD}% y ${UMBRAL_IDEAL - 1}%`, min: UMBRAL_AFINIDAD, tono: "gold" },
+  { titulo: "Otras", desc: `Por debajo del ${UMBRAL_AFINIDAD}%`, min: 0, tono: "" },
+] as const;
+
 /** Tarjeta de vacante del ranking, con el mismo formato que las del Marketplace. */
-function TarjetaVacante({ v, afinidad, onDetalle }: { v: Vacante; afinidad: number; onDetalle: () => void }) {
+function TarjetaVacante({ v, afinidad, onDetalle, esInteres, onInteres }: {
+  v: Vacante; afinidad: number; onDetalle: () => void;
+  /** El puesto ya está entre los de interés del colaborador. */
+  esInteres: boolean;
+  onInteres: () => void;
+}) {
   const desc = v.req.descripcion.length > 110 ? v.req.descripcion.slice(0, 110).trimEnd() + "…" : v.req.descripcion;
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10, margin: 0 }}>
@@ -75,7 +91,16 @@ function TarjetaVacante({ v, afinidad, onDetalle }: { v: Vacante; afinidad: numb
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: "auto", flexWrap: "wrap" }}>
         <button className="btn dark sm" onClick={onDetalle}><FileText size={13} /> Ver detalles</button>
-        {afinidad >= UMBRAL_AFINIDAD && <Chip tone="ok">Alta afinidad</Chip>}
+        {/* Ojo: este corazón NO son los favoritos de "Buscar vacantes". Añade el puesto a los
+            puestos de interés de la ficha, que es lo que lee el agente de movilidad. */}
+        <button
+          className={"heart" + (esInteres ? " on" : "")}
+          style={{ marginLeft: "auto" }}
+          title={esInteres ? "Quitar de mis puestos de interés" : "Añadir a mis puestos de interés"}
+          onClick={onInteres}
+        >
+          <Heart size={15} fill={esInteres ? "currentColor" : "none"} />
+        </button>
       </div>
     </div>
   );
@@ -135,6 +160,7 @@ export function MovilidadPage() {
   const [detalle, setDetalle] = useState<string | null>(null);
   const [aplicarA, setAplicarA] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [editando, setEditando] = useState(false);
 
   const cand = candidatos.find((c) => c.id === candId);
   if (!cand) return <p>Cargando…</p>;
@@ -168,6 +194,23 @@ export function MovilidadPage() {
     }
   };
 
+  /**
+   * Alterna un puesto en la lista de intereses desde el corazón del ranking.
+   * Se manda el candidato COMPLETO: `guardarCandidato` reemplaza el objeto entero.
+   */
+  const alternarInteres = async (titulo: string) => {
+    const actuales = cand.puestosInteres ?? [];
+    const nuevos = actuales.includes(titulo)
+      ? actuales.filter((p) => p !== titulo)
+      : [...actuales, titulo];
+    try {
+      await actions.guardarCandidato({ ...cand, puestosInteres: nuevos });
+      toast(actuales.includes(titulo) ? "Quitado de tus puestos de interés" : "Añadido a tus puestos de interés");
+    } catch (e) {
+      toast("No se pudo guardar: " + (e as Error).message);
+    }
+  };
+
   const ranking = rankingVacantes(cand, vacantes);
   const enProceso = procesoActivoEnOtra(vacantes, cand.id);
   const vDet = detalle ? vacantes.find((v) => v.id === detalle) : null;
@@ -181,7 +224,7 @@ export function MovilidadPage() {
         ))}
       </div>
 
-      {sec === 0 && <FichaTalento cand={cand} />}
+      {sec === 0 && <FichaTalento cand={cand} onEditar={() => setEditando(true)} />}
 
       {sec === 1 && (
         <>
@@ -221,13 +264,31 @@ export function MovilidadPage() {
 
       {sec === 2 && (
         <>
-          <label>Vacantes ideales para tu perfil</label>
+          <label>Vacantes para tu perfil</label>
           {ranking.length ? (
-            <div className="vac-grid" style={{ marginTop: 6 }}>
-              {ranking.map(({ v, afinidad }) => (
-                <TarjetaVacante key={v.id} v={v} afinidad={afinidad} onDetalle={() => setDetalle(v.id)} />
-              ))}
-            </div>
+            BLOQUES.map((b, i) => {
+              // Cada bloque se queda con lo que supera su umbral y no entró en uno anterior.
+              const techo = i === 0 ? Infinity : BLOQUES[i - 1].min;
+              const delBloque = ranking.filter((r) => r.afinidad >= b.min && r.afinidad < techo);
+              if (!delBloque.length) return null;
+              return (
+                <div key={b.titulo} style={{ marginTop: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Chip tone={b.tono}>{b.titulo}</Chip>
+                    <span className="help">{b.desc} · {delBloque.length}</span>
+                    <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+                  </div>
+                  <div className="vac-grid">
+                    {delBloque.map(({ v, afinidad }) => (
+                      <TarjetaVacante key={v.id} v={v} afinidad={afinidad}
+                        onDetalle={() => setDetalle(v.id)}
+                        esInteres={(cand.puestosInteres ?? []).includes(v.req.titulo)}
+                        onInteres={() => { void alternarInteres(v.req.titulo); }} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
           ) : (
             <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36, marginTop: 6 }}>
               Ahora mismo no hay vacantes abiertas. En cuanto se publique alguna aparecerá aquí ordenada por afinidad.
@@ -243,6 +304,22 @@ export function MovilidadPage() {
         <DetalleVacanteModal v={vDet} cand={cand} p={vDet.pipeline[cand.id]} bloqueado={enProceso}
           onAplicar={() => { setAplicarA(vDet.id); setDetalle(null); }} onClose={() => setDetalle(null)} />
       )}
+      {/* Editor propio, abierto en la pestaña de cursos y puestos: es lo que el botón "Editar" de
+          la ficha promete. Se monta aquí en vez de encender el de AppShell, que está tres niveles
+          más arriba y no sabe de esta pantalla. */}
+      {editando && (
+        <PerfilEditor
+          cand={cand}
+          tabInicial={1}
+          onClose={() => setEditando(false)}
+          onSave={(actualizado) => {
+            void actions.guardarCandidato(actualizado);
+            setEditando(false);
+            toast("Ficha de talento actualizada");
+          }}
+        />
+      )}
+
       {vApl && (
         <AplicarModal cand={cand} v={vApl}
           onSend={(msg) => { void actions.postularDirecto(vApl.id, cand.id, msg); setAplicarA(null); toast("¡Postulación enviada!"); }}

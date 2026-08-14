@@ -21,8 +21,15 @@ export const DESEMPENO = [
 
 export const TIPOS_CURSO = ["curso", "certificado", "licencia"] as const;
 
-/** Gravedad de un acta administrativa en Honesteles. */
-export const TIPOS_ACTA = ["leve", "grave"] as const;
+/**
+ * Motivos que se registran en Honesteles, la plataforma de actas administrativas. Lista cerrada.
+ * No llevan gravedad: cualquiera de los tres baja el semáforo a rojo.
+ */
+export const MOTIVOS_HONESTELES = [
+  "Mala distribución de carga laboral",
+  "Acoso laboral",
+  "Multas al colaborador (cobros en efectivo o especie por retardos, faltas, errores operativos o indisciplina)",
+] as const;
 
 /** Estatus del colaborador en su movilidad. Se DERIVA del proceso, no se guarda. */
 export const ESTADOS_MOVILIDAD = [
@@ -32,8 +39,11 @@ export const ESTADOS_MOVILIDAD = [
 /** Acción recomendada al formador. También derivada; ver `utils/movilidad.ts`. */
 export const ACCIONES_RECOMENDADAS = ["Transferir", "Promover", "Formar", "Desvincular"] as const;
 
-/** Afinidad a partir de la cual una vacante cuenta como oportunidad real. */
+/** Afinidad a partir de la cual una vacante es "adecuada" y cuenta como oportunidad real. */
 export const UMBRAL_AFINIDAD = 70;
+
+/** Afinidad a partir de la cual una vacante es "ideal" para el colaborador. */
+export const UMBRAL_IDEAL = 90;
 
 /** Días sin tocar la ficha a partir de los cuales el colaborador cuenta como "Inactivo": 6 meses. */
 export const DIAS_PERFIL_INACTIVO = 180;
