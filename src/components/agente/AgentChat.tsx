@@ -48,9 +48,19 @@ interface Props {
   chips?: string[];
   /** Etapa/pantalla actual del usuario, para respuestas contextuales del agente. */
   etapa?: string;
+  /**
+   * Transporte alternativo. Sin esto se habla con el agente general; pasándolo, el mismo chat sirve
+   * para otro agente (hoy el de movilidad, `POST /movilidad/chat`).
+   *
+   * Existe para no duplicar este componente: el streaming, el Markdown, los chips y las sugerencias
+   * viven aquí y solo aquí. Lo que cambia entre agentes es a dónde va el mensaje, no cómo se pinta.
+   */
+  enviar?: (mensaje: string, onEvent: (e: AgenteEvent) => void) => Promise<void>;
+  /** Texto del campo de entrada. */
+  placeholder?: string;
 }
 
-export function AgentChat({ sessionId, identidad, initial, onActividad, chips, etapa }: Props) {
+export function AgentChat({ sessionId, identidad, initial, onActividad, chips, etapa, enviar: enviarExterno, placeholder }: Props) {
   const [msgs, setMsgs] = useState<Mensaje[]>(initial ?? []);
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -100,10 +110,14 @@ export function AgentChat({ sessionId, identidad, initial, onActividad, chips, e
     };
 
     try {
-      await enviarMensaje(
-        { sessionId, mensaje: texto, rol: identidad.rol, formadorId: identidad.formadorId, candId: identidad.candId, etapa },
-        onEvent,
-      );
+      if (enviarExterno) {
+        await enviarExterno(texto, onEvent);
+      } else {
+        await enviarMensaje(
+          { sessionId, mensaje: texto, rol: identidad.rol, formadorId: identidad.formadorId, candId: identidad.candId, etapa },
+          onEvent,
+        );
+      }
     } catch (err) {
       setMsgs((m) => [...m, { de: "bot", t: `⚠️ ${(err as Error).message}` }]);
     } finally {
@@ -176,7 +190,7 @@ export function AgentChat({ sessionId, identidad, initial, onActividad, chips, e
           ref={inputRef}
           rows={1}
           style={{ flex: 1, fontSize: 12.5, padding: "8px 10px", border: "1px solid var(--line)", borderRadius: "var(--r-2)", background: "var(--input-bg)", color: "var(--ink)", outline: "none", resize: "none", overflowY: "auto", maxHeight: 110, lineHeight: 1.4 }}
-          placeholder="Escribe tu instrucción…"
+          placeholder={placeholder ?? "Escribe tu instrucción…"}
           value={input}
           onChange={(e) => { setInput(e.target.value); autosize(); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } }}

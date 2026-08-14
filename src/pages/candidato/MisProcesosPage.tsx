@@ -36,6 +36,16 @@ const CONTRATO_KEYS: [string, string][] = [
   ["rfc", "Constancia de situación fiscal (RFC)"], ["domicilio", "Comprobante de domicilio"],
   ["estudios", "Comprobante de estudios"],
 ];
+
+/**
+ * Documentos que se le piden a este candidato.
+ *
+ * Al interno no se le pide el CURP: la empresa ya lo tiene en su expediente. Tiene que filtrarse
+ * aquí y no solo al pintar la lista, porque de esta misma función sale la comprobación de
+ * "documentación completa"; si el CURP siguiera contando, un interno nunca podría terminarla.
+ */
+const docsDe = (tipo: string): [string, string][] =>
+  CONTRATO_KEYS.filter(([k]) => !(tipo === "interno" && k === "curp"));
 const esCerrado = (est: string) => ["contratado", "descartado", "filtrado", "rechazado"].includes(est);
 
 interface FiltroLocal { autoriza: boolean; }
@@ -111,7 +121,7 @@ export function MisProcesosPage() {
         const loc = getLoc(v.id);
         const filtroDocsOk = psicoVigente(cand.psicometrico) && loc.autoriza;
         const medicoOk = !v.req.examenMedico || !!(p.medico && p.medico.validado);
-        const contratoOk = CONTRATO_KEYS.every(([k]) => p.docsContrato[k]) && medicoOk;
+        const contratoOk = docsDe(cand.tipo).every(([k]) => p.docsContrato[k]) && medicoOk;
 
         return (
           <div className={"card" + (p.estado === "contratado" ? " ok" : "")} key={v.id} style={{ marginBottom: 16 }}>
@@ -228,13 +238,13 @@ export function MisProcesosPage() {
                   <b>🎉 ¡Felicidades, {cand.nombre.split(" ")[0]}! Fuiste seleccionado(a).</b>
                   <p style={{ fontSize: 12.5, marginTop: 4 }}>Siguiente paso: sube tu documentación para preparar tu contratación. <b>Solo PDF · máximo 1 MB por archivo.</b></p>
                 </div>
-                {CONTRATO_KEYS.map(([k, l]) => {
-                  // El interno ya es empleado: sus documentos están en expediente y puede
-                  // reutilizarlos o actualizarlos. El CURP se excluye: no cambia nunca.
+                {docsDe(cand.tipo).map(([k, l]) => {
+                  // El interno ya es empleado: TODOS sus documentos están en expediente y puede
+                  // reutilizarlos o actualizarlos, el CURP incluido. Antes se excluía por no
+                  // cambiar nunca, pero era el único documento sin "Usar actual" y la asimetría
+                  // hacía pensar que faltaba subirlo.
                   const enPerfil = (cand.docsPerfil as unknown as Record<string, string | null>)[k];
-                  const delExpediente = cand.tipo === "interno" && k !== "curp"
-                    ? enPerfil ?? `${l}.pdf`
-                    : null;
+                  const delExpediente = cand.tipo === "interno" ? enPerfil ?? `${l}.pdf` : null;
                   return (
                     <UploadPDF key={k} label={l} value={p.docsContrato[k] ?? null}
                       actual={delExpediente}

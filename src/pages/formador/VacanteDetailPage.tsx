@@ -29,6 +29,7 @@ import { Celebracion } from "../../components/formador/Celebracion";
 import { BusquedaIAOverlay, CategorizarModal, CompartirModal, SolicitarMasModal } from "../../components/formador/poolModals";
 import { money, diasActivaLabel, mapsUrl, folioCita } from "../../utils/format";
 import { procesoActivoEnOtra } from "../../utils/pipeline";
+import { nivelMovilidad } from "../../utils/movilidad";
 import { descargarCV } from "../../utils/descargarCV";
 import { candidatoElegido, faseVacante } from "../../utils/fases";
 import { EDUCACION, PIPE_IDX } from "../../constants/catalogos";
@@ -152,6 +153,8 @@ export function VacanteDetailPage() {
       <Avatar nombre={c.nombre} />
       <div className="trow-body" style={{ flex: 1, minWidth: 0 }}>
         <b style={{ fontSize: 14 }}>{c.nombre}</b> <Chip tone={c.tipo === "interno" ? "gold" : ""}>{c.tipo}</Chip>
+        {/* El semáforo, pegado al tipo: solo los internos lo tienen y así se leen juntos. */}
+        {nivelMovilidad(c) && <Chip tone={nivelMovilidad(c)!.tono}>{nivelMovilidad(c)!.etiqueta}</Chip>}
         {favs.includes(cid) && <Chip tone="bad"><Heart size={11} /> Favorito</Chip>}
         <div style={{ fontSize: 12.5, color: "var(--gray)" }}>{c.puesto} · {c.exp} años · {c.ciudad}</div>
         <div className="tagpick" style={{ marginTop: 5 }}>{c.esp.slice(0, 2).map((e) => <span key={e} className="chip">{e}</span>)}{c.hard.slice(0, 2).map((e) => <span key={e} className="chip">{e}</span>)}</div>
@@ -559,23 +562,37 @@ export function VacanteDetailPage() {
           {seleccionado && seleccionado.p.estado === "oferta_aceptada" && (
             <div>
               <h3 style={{ marginBottom: 4 }}>Firma del contrato · {seleccionado.c.nombre}</h3>
-              <p className="help" style={{ marginBottom: 14 }}>{seleccionado.c.nombre.split(" ")[0]} aceptó la oferta ({money(seleccionado.p.oferta?.monto ?? 0)} /mes · ingreso {seleccionado.p.oferta?.fecha}). Para firmar necesitas su cuenta de nómina registrada.</p>
+              <p className="help" style={{ marginBottom: 14 }}>
+                {seleccionado.c.nombre.split(" ")[0]} aceptó la oferta ({money(seleccionado.p.oferta?.monto ?? 0)} /mes · ingreso {seleccionado.p.oferta?.fecha}).{" "}
+                {seleccionado.c.tipo === "interno"
+                  ? "Ya cobra en la empresa, así que no hay cuenta de nómina que esperar: puedes firmar en cuanto captures su firma."
+                  : "Para firmar necesitas su cuenta de nómina registrada."}
+              </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
                 <button className="btn ghost sm" onClick={() => toast("Kit de contratación enviado (Mintrace · simulado)")}><Send size={13} /> Enviar kit de contratación (Mintrace)</button>
-                {seleccionado.p.cuentaBanco
-                  ? <span className="chip ok"><CheckCircle2 size={11} /> Cuenta de nómina registrada ••••{String(seleccionado.p.cuentaBanco).slice(-4)}</span>
-                  : <><span className="chip gold"><Clock size={11} /> Esperando apertura de cuenta del candidato</span><SimBtn cid={seleccionado.cid} label="Simular apertura de cuenta" /></>}
+                {/* El colaborador interno no abre cuenta: su pantalla le pide el mensaje de
+                    liberación en vez de la apertura, así que `cuentaBanco` nunca se llena y
+                    esperarla dejaba el proceso de movilidad sin poder cerrarse nunca. */}
+                {seleccionado.c.tipo === "interno"
+                  ? <span className="chip ok"><CheckCircle2 size={11} /> Colaborador interno · ya tiene cuenta de nómina</span>
+                  : seleccionado.p.cuentaBanco
+                    ? <span className="chip ok"><CheckCircle2 size={11} /> Cuenta de nómina registrada ••••{String(seleccionado.p.cuentaBanco).slice(-4)}</span>
+                    : <><span className="chip gold"><Clock size={11} /> Esperando apertura de cuenta del candidato</span><SimBtn cid={seleccionado.cid} label="Simular apertura de cuenta" /></>}
               </div>
               <div className="field" style={{ maxWidth: 420 }}>
                 <label>Ingresar firma del candidato (nombre completo) *</label>
                 <input value={firma} onChange={(e) => setFirma(e.target.value)} placeholder={seleccionado.c.nombre} style={{ fontStyle: "italic" }} />
                 <div className="help">La firma capturada queda asociada al contrato (simulado).</div>
               </div>
-              <button className="btn gold" disabled={!seleccionado.p.cuentaBanco || !firma.trim()}
+              {/* Al interno solo se le pide la firma; la cuenta de nómina únicamente al externo. */}
+              <button className="btn gold"
+                disabled={(seleccionado.c.tipo !== "interno" && !seleccionado.p.cuentaBanco) || !firma.trim()}
                 onClick={() => { void actions.firmarContrato(v.id, seleccionado.cid); setFirma(""); setTabActual(6); toast("Contrato firmado · contratación completada 🎉"); }}>
                 <FileSignature size={15} /> Firmar contrato
               </button>
-              {seleccionado.p.cuentaBanco && !firma.trim() && <div className="help" style={{ marginTop: 6 }}>Captura el nombre completo del candidato como firma para habilitar el botón.</div>}
+              {(seleccionado.c.tipo === "interno" || seleccionado.p.cuentaBanco) && !firma.trim() && (
+                <div className="help" style={{ marginTop: 6 }}>Captura el nombre completo del candidato como firma para habilitar el botón.</div>
+              )}
             </div>
           )}
           {contratado && (

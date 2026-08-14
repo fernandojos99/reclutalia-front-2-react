@@ -3,13 +3,15 @@ import { useState } from "react";
 import { CheckCircle2, Plus, X } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { UploadPDF, UploadFoto, TagInput } from "../ui/uploads";
-import { EDUCACION } from "../../constants/catalogos";
+import { EDUCACION, TIPOS_CURSO } from "../../constants/catalogos";
 import type { Candidato, DocsPerfil } from "../../types/models/domain";
 
 const INTERESES = ["Emplearme", "Crecer mi puesto", "Cambiar de área"];
 
-export function PerfilEditor({ cand, onSave, onClose }: {
+export function PerfilEditor({ cand, onSave, onClose, tabInicial = 0 }: {
   cand: Candidato; onSave: (c: Candidato) => void; onClose: () => void;
+  /** Pestaña en la que abre: 0 perfil · 1 cursos y puestos · 2 documentos. */
+  tabInicial?: number;
 }) {
   const [c, setC] = useState<Candidato>(() => ({
     ...cand,
@@ -17,6 +19,8 @@ export function PerfilEditor({ cand, onSave, onClose }: {
     experiencia: (cand.experiencia ?? []).map((x) => ({ ...x })),
     educacion: (cand.educacion ?? []).map((x) => ({ ...x })),
     intereses: [...(cand.intereses ?? [])],
+    cursos: (cand.cursos ?? []).map((x) => ({ ...x })),
+    puestosInteres: [...(cand.puestosInteres ?? [])],
     docsPerfil: {
       ine: cand.docsPerfil?.ine ?? null, curp: cand.docsPerfil?.curp ?? null,
       rfc: cand.docsPerfil?.rfc ?? null, domicilio: cand.docsPerfil?.domicilio ?? null,
@@ -24,7 +28,7 @@ export function PerfilEditor({ cand, onSave, onClose }: {
       certificaciones: [...(cand.docsPerfil?.certificaciones ?? [])],
     },
   }));
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(tabInicial);
   const set = <K extends keyof Candidato>(k: K, v: Candidato[K]) => setC((x) => ({ ...x, [k]: v }));
   const setDoc = <K extends keyof DocsPerfil>(k: K, v: DocsPerfil[K]) => setC((x) => ({ ...x, docsPerfil: { ...x.docsPerfil, [k]: v } }));
 
@@ -35,6 +39,13 @@ export function PerfilEditor({ cand, onSave, onClose }: {
   const setEdu = (i: number, k: string, v: string) => set("educacion", c.educacion.map((e, j) => (j === i ? { ...e, [k]: v } : e)));
   const delEdu = (i: number) => set("educacion", c.educacion.filter((_, j) => j !== i));
   const toggleInt = (o: string) => set("intereses", c.intereses.includes(o) ? c.intereses.filter((x) => x !== o) : [...c.intereses, o]);
+  // Cursos, certificados y licencias (pestaña de movilidad interna).
+  const cursos = c.cursos ?? [];
+  const addCurso = () => set("cursos", [...cursos, { nombre: "", tipo: "curso" as const, fecha: "", institucion: "" }]);
+  const setCurso = (i: number, k: string, v: string) =>
+    set("cursos", cursos.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const delCurso = (i: number) => set("cursos", cursos.filter((_, j) => j !== i));
+
   const setCert = (i: number, n: string) => setDoc("certificaciones", c.docsPerfil.certificaciones.map((x, j) => (j === i ? n : x)));
   const addCert = (n: string) => { if (n) setDoc("certificaciones", [...c.docsPerfil.certificaciones, n]); };
   const delCert = (i: number) => setDoc("certificaciones", c.docsPerfil.certificaciones.filter((_, j) => j !== i));
@@ -44,7 +55,11 @@ export function PerfilEditor({ cand, onSave, onClose }: {
       <h3 style={{ marginBottom: 14 }}>Editar perfil</h3>
       <div className="tabs">
         <button className={"tab" + (tab === 0 ? " on" : "")} onClick={() => setTab(0)}>Mi perfil</button>
-        <button className={"tab" + (tab === 1 ? " on" : "")} onClick={() => setTab(1)}>Mis documentos</button>
+        {/* Solo tiene sentido para el colaborador interno: son los datos de su ficha de talento. */}
+        {c.tipo === "interno" && (
+          <button className={"tab" + (tab === 1 ? " on" : "")} onClick={() => setTab(1)}>Cursos y puestos</button>
+        )}
+        <button className={"tab" + (tab === 2 ? " on" : "")} onClick={() => setTab(2)}>Mis documentos</button>
       </div>
 
       {tab === 0 && (
@@ -103,7 +118,43 @@ export function PerfilEditor({ cand, onSave, onClose }: {
         </>
       )}
 
+      {/* Cursos y puestos de interés: lo que el colaborador puede mantener de su ficha de talento.
+          El resto de la ficha —semáforo, desempeño, actas— no se edita aquí a propósito: no son
+          suyos, los deciden el administrador y su formador. */}
       {tab === 1 && (
+        <>
+          <p className="help" style={{ marginBottom: 12 }}>
+            Esto es lo que aparece en tu ficha de talento y lo que el agente de movilidad usa para
+            proponerte puestos y armar tu plan.
+          </p>
+
+          <div className="field">
+            <label>Cursos, certificados y licencias</label>
+            {!cursos.length && <div className="help">Todavía no has registrado ninguno.</div>}
+            {cursos.map((cu, i) => (
+              <div key={i} style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                <input placeholder="Nombre" value={cu.nombre} onChange={(e) => setCurso(i, "nombre", e.target.value)} style={{ flex: "1 1 200px" }} />
+                <select value={cu.tipo} onChange={(e) => setCurso(i, "tipo", e.target.value)} style={{ flex: "0 1 130px" }}>
+                  {TIPOS_CURSO.map((t) => <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>)}
+                </select>
+                <input placeholder="Institución" value={cu.institucion ?? ""} onChange={(e) => setCurso(i, "institucion", e.target.value)} style={{ flex: "1 1 160px" }} />
+                <input placeholder="14 mar 2025" value={cu.fecha} onChange={(e) => setCurso(i, "fecha", e.target.value)} style={{ flex: "0 1 130px" }} title="Fecha de obtención; déjalo vacío si sigue en curso" />
+                <button className="btn ghost sm" onClick={() => delCurso(i)} title="Eliminar"><X size={13} /></button>
+              </div>
+            ))}
+            <button className="btn ghost sm" style={{ marginTop: 10 }} onClick={addCurso}><Plus size={13} /> Agregar curso</button>
+          </div>
+
+          <div className="field">
+            <label>Puestos de interés</label>
+            <TagInput value={c.puestosInteres ?? []} onChange={(v) => set("puestosInteres", v)} max={6}
+              placeholder="Ej. Coordinador de call center…"
+              help="Máx. 6. También puedes añadirlos con el corazón de cada vacante en tu ranking." />
+          </div>
+        </>
+      )}
+
+      {tab === 2 && (
         <>
           <p className="help" style={{ marginBottom: 12 }}>Repositorio personal de documentos reutilizables. Se aprovecharán al aplicar a vacantes. Solo PDF · máximo 1 MB por archivo.</p>
           <label>Identidad</label>

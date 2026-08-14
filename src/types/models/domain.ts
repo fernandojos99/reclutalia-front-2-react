@@ -17,6 +17,8 @@ export interface Notificacion {
   vacId: string;
   fecha: string;
   leida: boolean;
+  /** Acción que el destinatario puede lanzar desde la propia notificación. */
+  accion?: { tipo: "agradecer"; cid: number };
 }
 
 export interface Requisito {
@@ -238,6 +240,75 @@ export interface DocsPerfil {
   cv: string | null;
 }
 
+/* ─────────────── Movilidad interna ───────────────
+ * Espejo de `back/src/types/domain.ts`. Solo tiene sentido en candidatos `interno`.
+ */
+
+/**
+ * Semáforo de elegibilidad. Se CALCULA a partir de Honesteles y el desempeño
+ * (`utils/movilidad.ts`); el campo del candidato es solo el override del administrador.
+ */
+export type NivelMovilidad = "alta" | "media" | "baja";
+
+/** Desempeño en el puesto actual. Sin `ñ`: ningún identificador del dominio la usa. */
+export type NivelDesempeno = "alto" | "medio" | "bajo";
+
+export interface CursoItem {
+  nombre: string;
+  tipo: "curso" | "certificado" | "licencia";
+  /** Fecha de obtención en formato es-MX ("14 mar 2025"). */
+  fecha: string;
+  institucion?: string;
+}
+
+export interface HabilidadPlan {
+  nombre: string;
+  hecha: boolean;
+  como?: string;
+}
+
+export interface PlanDesarrollo {
+  puestoObjetivo: string;
+  habilidades: HabilidadPlan[];
+  necesidades: string[];
+  cursosSugeridos: string[];
+  generado: string;
+}
+
+export interface HistorialPuesto {
+  puesto: string;
+  desde: string;
+  /** Vacío si es el puesto actual. */
+  hasta: string;
+  motivo: "ingreso" | "ascenso" | "movilidad";
+}
+
+/**
+ * Acta administrativa levantada en Honesteles.
+ *
+ * `motivo` sale de la lista cerrada `MOTIVOS_HONESTELES`. No hay gravedad: cualquier acta baja el
+ * semáforo a rojo por igual.
+ */
+export interface ActaAdministrativa {
+  motivo: string;
+  /** Fecha del acta en formato es-MX ("14 mar 2025"). */
+  fecha: string;
+}
+
+/**
+ * Expediente del colaborador en **Honesteles**, la plataforma de actas administrativas.
+ *
+ * No se guarda ningún "estatus": se DERIVA de `actas` y `enRevision` (ver `utils/movilidad.ts`).
+ * Un estatus almacenado podría decir "sin actas" teniendo dos.
+ */
+export interface Honesteles {
+  actas: ActaAdministrativa[];
+  /** Hay un acta abierta sin resolver en la plataforma. */
+  enRevision?: boolean;
+  /** Última sincronización con Honesteles. */
+  actualizado: string;
+}
+
 export interface Candidato {
   id: number;
   nombre: string;
@@ -269,4 +340,25 @@ export interface Candidato {
   favoritos: string[];
   psicometrico: { fecha: string; ts: number } | null;
   docsPerfil: DocsPerfil;
+
+  /* ── Movilidad interna: solo internos. Ver los tipos de arriba. ── */
+  /**
+   * OVERRIDE del semáforo. Si está puesto manda sobre el cálculo; si no, se deriva de Honesteles y
+   * el desempeño. Usa siempre `movilidadEfectiva()` para leerlo, nunca este campo a pelo.
+   */
+  movilidad?: NivelMovilidad;
+  desempeno?: NivelDesempeno;
+  cursos?: CursoItem[];
+  /** Puestos a los que le gustaría moverse, definidos por el propio colaborador. */
+  puestosInteres?: string[];
+  /** Inicio en el puesto ACTUAL, para la antigüedad de la ficha ("01 mar 2023"). */
+  antiguedadDesde?: string;
+  /** Última vez que tocó su ficha. Decide el estatus "Inactivo" (más de 1 mes). */
+  perfilActualizado?: string;
+  planDesarrollo?: PlanDesarrollo;
+  historialPuestos?: HistorialPuesto[];
+  /** Expediente en Honesteles. El colaborador ve el estatus; los motivos, solo su formador. */
+  honesteles?: Honesteles;
+  /** Vacante del proceso de movilidad en curso; mientras tenga valor no puede abrir otro. */
+  movilidadActivaVacId?: string;
 }

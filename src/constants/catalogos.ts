@@ -3,6 +3,51 @@
  * Los catálogos "de datos" (áreas, skills, etc.) se cargan del backend vía useCatalogos;
  * estos son de estructura y no cambian, por eso se mantienen aquí (espejo de constants/catalogs).
  */
+/* ─────────────── Movilidad interna (espejo de constants/catalogs.ts) ─────────────── */
+
+/** Semáforo de elegibilidad. `tono` es la clase de `Chip`, para pintarlo igual en todas las vistas. */
+export const MOVILIDAD = [
+  { nivel: "alta", etiqueta: "Movilidad alta", corto: "Alta", tono: "ok" },
+  { nivel: "media", etiqueta: "Movilidad media", corto: "Media", tono: "gold" },
+  { nivel: "baja", etiqueta: "Movilidad baja", corto: "Baja", tono: "bad" },
+] as const;
+
+/** Desempeño en el puesto actual. */
+export const DESEMPENO = [
+  { nivel: "alto", etiqueta: "Alto", tono: "ok" },
+  { nivel: "medio", etiqueta: "Medio", tono: "gold" },
+  { nivel: "bajo", etiqueta: "Bajo", tono: "bad" },
+] as const;
+
+export const TIPOS_CURSO = ["curso", "certificado", "licencia"] as const;
+
+/**
+ * Motivos que se registran en Honesteles, la plataforma de actas administrativas. Lista cerrada.
+ * No llevan gravedad: cualquiera de los tres baja el semáforo a rojo.
+ */
+export const MOTIVOS_HONESTELES = [
+  "Mala distribución de carga laboral",
+  "Acoso laboral",
+  "Multas al colaborador (cobros en efectivo o especie por retardos, faltas, errores operativos o indisciplina)",
+] as const;
+
+/** Estatus del colaborador en su movilidad. Se DERIVA del proceso, no se guarda. */
+export const ESTADOS_MOVILIDAD = [
+  "Inactivo", "Actualizado", "En búsqueda", "En proceso", "Seleccionado", "Contratado",
+] as const;
+
+/** Acción recomendada al formador. También derivada; ver `utils/movilidad.ts`. */
+export const ACCIONES_RECOMENDADAS = ["Transferir", "Promover", "Formar", "Desvincular"] as const;
+
+/** Afinidad a partir de la cual una vacante es "adecuada" y cuenta como oportunidad real. */
+export const UMBRAL_AFINIDAD = 70;
+
+/** Afinidad a partir de la cual una vacante es "ideal" para el colaborador. */
+export const UMBRAL_IDEAL = 90;
+
+/** Días sin tocar la ficha a partir de los cuales el colaborador cuenta como "Inactivo": 6 meses. */
+export const DIAS_PERFIL_INACTIVO = 180;
+
 export const FASES = [
   { nombre: "Búsqueda", subs: ["Publicación", "Marketplace de talento"] },
   { nombre: "Selección", subs: ["Ranking", "Entrevistas", "Selección y documentos"] },

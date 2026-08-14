@@ -6,11 +6,13 @@ import { MisVacantesPage } from "../pages/formador/MisVacantesPage";
 import { VacanteDetailPage } from "../pages/formador/VacanteDetailPage";
 import { RevisarVacantePage } from "../pages/formador/RevisarVacantePage";
 import { EntrevistasAsignadasPage } from "../pages/formador/EntrevistasAsignadasPage";
+import { MovilidadInternaPage } from "../pages/formador/MovilidadInternaPage";
 import { AdminVacantesPage } from "../pages/admin/VacantesPage";
 import { NuevaVacantePage } from "../pages/admin/NuevaVacantePage";
 import { PoolPage } from "../pages/admin/PoolPage";
 import { MisProcesosPage } from "../pages/candidato/MisProcesosPage";
 import { BuscarVacantesPage } from "../pages/candidato/BuscarVacantesPage";
+import { MovilidadPage } from "../pages/candidato/MovilidadPage";
 import { NotificacionesPage } from "../pages/NotificacionesPage";
 import { ChatPage } from "../pages/ChatPage";
 
@@ -25,6 +27,7 @@ export function AppRoutes() {
         <Route path="/formador/vacante/:vacId" element={<VacanteDetailPage />} />
         <Route path="/formador/vacante/:vacId/revisar" element={<RevisarVacantePage />} />
         <Route path="/formador/entrevistas" element={<EntrevistasAsignadasPage />} />
+        <Route path="/formador/movilidad" element={<MovilidadInternaPage />} />
         <Route path="/formador/notificaciones" element={<NotificacionesPage />} />
         <Route path="/formador/chat" element={<ChatPage />} />
 
@@ -36,6 +39,7 @@ export function AppRoutes() {
 
         <Route path="/candidato" element={<MisProcesosPage />} />
         <Route path="/candidato/buscar" element={<BuscarVacantesPage />} />
+        <Route path="/candidato/movilidad" element={<MovilidadPage />} />
         <Route path="/candidato/notificaciones" element={<NotificacionesPage />} />
         <Route path="/candidato/chat" element={<ChatPage />} />
 
