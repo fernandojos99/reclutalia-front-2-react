@@ -9,7 +9,7 @@
  * vacante y también de vacantes distintas.
  */
 import { useCallback, useEffect, useState } from "react";
-import { CalendarCheck, CheckCircle2, Clock, Video, MapPin, Briefcase } from "lucide-react";
+import { CalendarCheck, CheckCircle2, ClipboardCheck, Clock, Video, MapPin, Briefcase } from "lucide-react";
 import { useDemo } from "../../contexts/DemoContext";
 import { useData } from "../../store/DataProvider";
 import { Chip } from "../../components/common/Chip";
@@ -85,7 +85,12 @@ export function EntrevistasAsignadasPage() {
               <div className="card" key={x.cid} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <b style={{ fontSize: 14 }}>{x.candidato}</b>
-                  {e.estado === "notificado" && <Chip icon={Clock}>Pendiente de agendar</Chip>}
+                  {/* En un assessment los horarios no los pone el invitado: los fija quien lo
+                      convoca y el candidato confirma uno para todo el equipo. */}
+                  {x.assessment && <Chip tone="gold" icon={ClipboardCheck}>Assessment center</Chip>}
+                  {e.estado === "notificado" && (
+                    <Chip icon={Clock}>{x.assessment ? "Esperando a que el candidato confirme el horario" : "Pendiente de agendar"}</Chip>
+                  )}
                   {e.estado === "agendada" && <Chip tone="gold" icon={CalendarCheck}>{e.slotElegido}</Chip>}
                   {e.estado === "realizada" && e.entrevista && (
                     <Chip tone="ok" icon={CheckCircle2}>
@@ -94,7 +99,7 @@ export function EntrevistasAsignadasPage() {
                   )}
 
                   <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {e.estado === "notificado" && (
+                    {e.estado === "notificado" && !x.assessment && (
                       <button className="btn gold sm" onClick={() => setAgendando(x)}>
                         <CalendarCheck size={13} /> Proponer horarios
                       </button>

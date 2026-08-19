@@ -7,7 +7,7 @@ import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom"
 import {
   MapPin, Clock, ShieldCheck, CheckCircle2, Sparkles, Filter, Users, Plus, FileText,
   Archive, ArchiveRestore, Heart, FolderPlus, Share2, User, Download, Send, Star, Video,
-  Calendar, CalendarCheck, Link2, ClipboardList, Bell, PartyPopper, Zap, AlertCircle, FileSignature,
+  Calendar, CalendarCheck, Link2, ClipboardList, ClipboardCheck, Bell, PartyPopper, Zap, AlertCircle, FileSignature,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useData } from "../../store/DataProvider";
@@ -21,6 +21,7 @@ import { PerfilModal } from "../../components/candidato/PerfilModal";
 
 import { InvitarModal } from "../../components/formador/InvitarModal";
 import { AgendaModal } from "../../components/formador/AgendaModal";
+import { AssessmentModal } from "../../components/formador/AssessmentModal";
 import { EntrevistaModal, VerEntrevistaModal, evalEmoji, evalLabel } from "../../components/formador/EntrevistaModal";
 import { EntrevistasExtra } from "../../components/formador/EntrevistasExtra";
 import { VideoIAResumenModal } from "../../components/formador/VideoIAResumenModal";
@@ -61,6 +62,8 @@ export function VacanteDetailPage() {
   const [perfil, setPerfil] = useState<{ c: Candidato; match: number } | null>(null);
   const [invitando, setInvitando] = useState<Candidato | null>(null);
   const [selEnt, setSelEnt] = useState<number[]>([]);
+  // Assessment: se convoca para UN candidato, así que guarda su cid, no una lista.
+  const [assessment, setAssessment] = useState<number | null>(null);
   const [agenda, setAgenda] = useState(false);
   const [entrevistando, setEntrevistando] = useState<{ c: Candidato; p: PipelineEntry; externa: boolean } | null>(null);
   const [confirmSel, setConfirmSel] = useState<{ cid: number; c: Candidato } | null>(null);
@@ -446,6 +449,13 @@ export function VacanteDetailPage() {
                 <div style={{ position: "sticky", bottom: 16, marginTop: 14, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                   {selEnt.length >= 3 && <span className="chip gold"><AlertCircle size={11} /> Límite alcanzado: máximo 3 candidatos por ronda de entrevistas</span>}
                   <button className="btn dark" onClick={() => setAgenda(true)}><Calendar size={15} /> Agendar entrevista con {selEnt.length} candidato(s)</button>
+                  {/* Alternativa a la entrevista uno a uno. Es para un solo candidato: la prueba y
+                      su equipo evaluador se arman por persona. */}
+                  <button className="btn ghost" disabled={selEnt.length !== 1}
+                    title={selEnt.length === 1 ? "Convocar una prueba práctica evaluada por varios formadores" : "Elige un solo candidato para convocar un assessment"}
+                    onClick={() => setAssessment(selEnt[0])}>
+                    <ClipboardCheck size={15} /> Assessment center
+                  </button>
                 </div>
               )}
             </>
@@ -687,6 +697,15 @@ export function VacanteDetailPage() {
         extra={!v.pipeline[perfil.c.id] && abierta && <button className="btn gold" onClick={() => { setInvitando(perfil.c); setPerfil(null); }}><Send size={15} /> Invitar a postularse</button>} />}
       {invitando && <InvitarModal cand={invitando} v={v} onClose={() => setInvitando(null)}
         onSend={(msg) => { void actions.invitar(v.id, invitando.id, msg); setInvitando(null); toast("Invitación enviada a " + invitando.nombre.split(" ")[0]); }} />}
+      {assessment != null && cand(assessment) && (
+        <AssessmentModal cand={cand(assessment)!} formadores={formadores} formadorVacante={v.formadorId}
+          onClose={() => setAssessment(null)}
+          onSend={(ev, slots, mod, proyecto) => {
+            void actions.crearAssessment(v.id, assessment, ev, slots, mod, proyecto);
+            setAssessment(null); setSelEnt([]);
+            toast("Assessment convocado · el candidato elegirá uno de los 3 horarios");
+          }} />
+      )}
       {agenda && <AgendaModal cands={selEnt.map((id) => cand(id)!).filter(Boolean)} onClose={() => setAgenda(false)}
         onSend={(slots, mod) => { void actions.enviarSlots(v.id, selEnt, slots, mod); setAgenda(false); setSelEnt([]); toast("Opciones de horario enviadas a los candidatos"); }} />}
       {verVideoIA && <VideoIAResumenModal cand={verVideoIA.c} v={v} match={verVideoIA.p.matchIA || verVideoIA.p.match} onClose={() => setVerVideoIA(null)} />}

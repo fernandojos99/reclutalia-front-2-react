@@ -121,6 +121,24 @@ export interface EntrevistaExtra {
   entrevista?: Entrevista;
 }
 
+/**
+ * Assessment center: una prueba práctica que varios formadores evalúan a la vez.
+ *
+ * No duplica el ciclo de agendado: reparte LOS MISMOS tres horarios del pipeline entre todos los
+ * evaluadores, así que cuando el candidato confirma uno queda confirmado para todos. Cada evaluador
+ * entrega su resumen, feedback y voto por su `EntrevistaExtra`, que es donde ya vivía ese registro.
+ *
+ * No avanza el proceso por su cuenta: el formador dueño de la vacante registra la entrevista a
+ * mano cuando considera que ya tiene lo que necesita.
+ */
+export interface Assessment {
+  /** Formadores invitados a evaluar, además del que la organiza. */
+  evaluadores: string[];
+  solicitado: string;
+  /** Descripción de la prueba que el candidato debe desarrollar. */
+  proyecto: string;
+}
+
 export interface Oferta {
   monto: number;
   fecha: string;
@@ -153,6 +171,8 @@ export interface PipelineEntry {
   entrevista?: Entrevista;
   /** Entrevistas pedidas a otros formadores, además de la del formador principal. */
   entrevistasExtra?: EntrevistaExtra[];
+  /** Assessment center en curso: la entrevista se sustituye por una prueba evaluada en grupo. */
+  assessment?: Assessment;
   oferta?: Oferta;
   medico?: Medico;
   cuentaBanco?: string;

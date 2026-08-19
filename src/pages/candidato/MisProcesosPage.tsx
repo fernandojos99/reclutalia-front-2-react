@@ -122,6 +122,13 @@ export function MisProcesosPage() {
         const filtroDocsOk = psicoVigente(cand.psicometrico) && loc.autoriza;
         const medicoOk = !v.req.examenMedico || !!(p.medico && p.medico.validado);
         const contratoOk = docsDe(cand.tipo).every(([k]) => p.docsContrato[k]) && medicoOk;
+        /**
+         * Evaluadores que todavía no entregan: entrevistas adicionales pedidas a otros formadores
+         * o el equipo de un Assessment center. Mientras quede alguno, la etapa "Entrevista" del
+         * candidato sigue pendiente. Se deriva, así que pedir una entrevista extra después la
+         * devuelve a pendiente sola, y cancelarla la libera.
+         */
+        const evalPendientes = (p.entrevistasExtra ?? []).filter((e) => e.estado !== "realizada").length;
 
         return (
           <div className={"card" + (p.estado === "contratado" ? " ok" : "")} key={v.id} style={{ marginBottom: 16 }}>
@@ -130,7 +137,7 @@ export function MisProcesosPage() {
               <Chip icon={MapPin}>{v.req.ubicacionTrabajo} · {v.req.modalidad}</Chip>
             </div>
             {!["descartado", "filtrado", "rechazado"].includes(p.estado) &&
-              <div style={{ margin: "10px 0 14px", maxWidth: 560 }}><MiniPipe estado={p.estado} /></div>}
+              <div style={{ margin: "10px 0 14px", maxWidth: 560 }}><MiniPipe estado={p.estado} evaluacionesPendientes={evalPendientes} /></div>}
 
             {p.estado === "invitado" && (
               <>
@@ -230,7 +237,9 @@ export function MisProcesosPage() {
               </div>
             )}
 
-            {p.estado === "entrevistado" && <Chip tone="gold">Entrevista realizada · estamos revisando tu candidatura</Chip>}
+            {p.estado === "entrevistado" && (evalPendientes > 0
+              ? <Chip tone="gold">Falta{evalPendientes === 1 ? "" : "n"} {evalPendientes} evaluación{evalPendientes === 1 ? "" : "es"} del equipo · te avisaremos al terminar</Chip>
+              : <Chip tone="gold">Entrevista realizada · estamos revisando tu candidatura</Chip>)}
 
             {["seleccionado", "docs_completos"].includes(p.estado) && (
               <>
