@@ -557,8 +557,10 @@ export function VacanteDetailPage() {
               <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
                 <Avatar nombre={seleccionado.c.nombre} />
                 <div style={{ flex: 1 }}><b style={{ fontSize: 15 }}>{seleccionado.c.nombre}</b> <Chip tone="ok" icon={CheckCircle2}>Candidato seleccionado</Chip>
-                  <div style={{ fontSize: 12.5, color: "var(--gray)" }}>Se notificó al candidato con la felicitación y el checklist de documentos. Los demás candidatos fueron notificados y canalizados a otras vacantes compatibles.</div></div>
-                {seleccionado.p.estado === "seleccionado" && (
+                  <div style={{ fontSize: 12.5, color: "var(--gray)" }}>{seleccionado.c.tipo === "interno"
+                    ? "Se notificó al colaborador. Al ser interno pasa directo a su carta oferta, sin subir documentación. Los demás candidatos fueron notificados y canalizados a otras vacantes compatibles."
+                    : "Se notificó al candidato con la felicitación y el checklist de documentos. Los demás candidatos fueron notificados y canalizados a otras vacantes compatibles."}</div></div>
+                {seleccionado.p.estado === "seleccionado" && seleccionado.c.tipo === "externo" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                     <button className="btn gold sm" onClick={() => { void actions.recordarDocs(v.id, seleccionado.cid); toast("Recordatorio enviado a " + seleccionado.c.nombre.split(" ")[0]); }}><Bell size={13} /> Enviar recordatorio de documentos</button>
                     <span className="chip ok"><Bell size={11} /> Auto recordatorios cada 24 horas — activado</span>
@@ -566,6 +568,10 @@ export function VacanteDetailPage() {
                   </div>
                 )}
               </div>
+              {seleccionado.c.tipo === "interno" ? (
+                <div className="chip ok"><CheckCircle2 size={12} /> Colaborador interno · su expediente ya está en la empresa, no sube documentación</div>
+              ) : (
+              <>
               <label>Checklist de documentación del candidato (PDF · máx. 1 MB c/u)</label>
               {[["ine", "Identificación oficial (INE)"], ["curp", "CURP"], ["rfc", "Constancia de situación fiscal (RFC)"], ["domicilio", "Comprobante de domicilio"], ["estudios", "Comprobante de estudios"]].map(([k, l]) => (
                 <div key={k} className={"check-item" + (seleccionado.p.docsContrato[k] ? " done" : "")}>
@@ -588,6 +594,8 @@ export function VacanteDetailPage() {
                 </div>
               )}
               {seleccionado.p.estado !== "seleccionado" && <div className="chip ok" style={{ marginTop: 12 }}><CheckCircle2 size={12} /> Documentación completa — continúa a la carta oferta</div>}
+              </>
+              )}
             </div>
           )}
         </div>
@@ -596,8 +604,11 @@ export function VacanteDetailPage() {
       {tabActual === 5 && abierta && (
         <div className="card">
           {!seleccionado && <p style={{ color: "var(--gray)", textAlign: "center", padding: 30 }}>Primero selecciona a tu candidato ideal.</p>}
-          {seleccionado && seleccionado.p.estado === "seleccionado" && <p style={{ color: "var(--gray)", textAlign: "center", padding: 30 }}>Esperando a que {seleccionado.c.nombre.split(" ")[0]} complete su documentación para habilitar la carta oferta.</p>}
-          {seleccionado && seleccionado.p.estado === "docs_completos" && (
+          {seleccionado && seleccionado.p.estado === "seleccionado" && seleccionado.c.tipo === "externo" && <p style={{ color: "var(--gray)", textAlign: "center", padding: 30 }}>Esperando a que {seleccionado.c.nombre.split(" ")[0]} complete su documentación para habilitar la carta oferta.</p>}
+          {/* Al interno se le puede ofrecer ya en "seleccionado": no pasa por documentación, su
+              expediente ya está en la empresa. La guardia del backend lo permite igual. */}
+          {seleccionado && (seleccionado.p.estado === "docs_completos"
+            || (seleccionado.p.estado === "seleccionado" && seleccionado.c.tipo === "interno")) && (
             <>
               <h3 style={{ marginBottom: 14 }}>Preparar carta oferta · {seleccionado.c.nombre}</h3>
               <OfertaTool v={v} cand={seleccionado.c} onSend={(m, fch, u) => { void actions.enviarOferta(v.id, seleccionado.cid, m, fch, u); toast("Carta oferta enviada al candidato"); }} />

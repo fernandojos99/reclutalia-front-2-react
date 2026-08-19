@@ -40,6 +40,10 @@ export const pipelineService = {
   /** Convoca el Assessment center: los mismos 3 horarios valen para todos los evaluadores. */
   crearAssessment: (v: string, cid: number, evaluadores: string[], slots: string[], modalidad: string, proyecto: string) =>
     apiClient.post<Vacante>(`${base(v, cid)}/assessment`, { evaluadores, slots, modalidad, proyecto }),
+  rechazarOferta: (v: string, cid: number, motivo: string) =>
+    apiClient.post<Vacante>(`${base(v, cid)}/rechazar-oferta`, { motivo }),
+  confirmarMovimiento: (v: string, cid: number) =>
+    apiClient.post<Vacante>(`${base(v, cid)}/confirmar-movimiento`),
   confirmarSlot: (v: string, cid: number, slot: string) =>
     apiClient.post<Vacante>(`${base(v, cid)}/confirmar-slot`, { slot }),
   registrarEntrevista: (v: string, cid: number, datos: EntrevistaPayload) =>

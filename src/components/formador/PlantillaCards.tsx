@@ -139,6 +139,9 @@ export function PlantillaCards({ vacantes, formador }: { vacantes: Vacante[]; fo
                       {pausada ? <Chip icon={PauseCircle}>Pausada</Chip>
                         : enProceso ? <Chip tone="ai">En proceso</Chip>
                           : <Chip tone="gold">Disponible</Chip>}
+                      {/* Una preventiva nace sola cuando un colaborador acepta irse: conviene que
+                          se distinga de las que el administrador asignó a mano. */}
+                      {v.req.tipoVacante === "Preventiva" && <Chip tone="ai">Preventiva</Chip>}
                       {/* Antes aquí iba el enlace "Ajustar perfil", que ahora es un botón propio. */}
                       <span className="plant-ajustar"><Clock size={13} /> {diasActivaLabel(v)}</span>
                     </>

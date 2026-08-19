@@ -70,6 +70,8 @@ interface Actions {
   marcarCapacitacion: (vacId: string, cid: number, modulo: string) => Promise<Vacante>;
   docsContratoListos: (vacId: string, cid: number) => Promise<Vacante>;
   enviarOferta: (vacId: string, cid: number, monto: number, fecha: string, ubicacion?: string) => Promise<Vacante>;
+  rechazarOferta: (vacId: string, cid: number, motivo: string) => Promise<Vacante>;
+  confirmarMovimiento: (vacId: string, cid: number) => Promise<Vacante>;
   aceptarOferta: (vacId: string, cid: number) => Promise<Vacante>;
   firmarContrato: (vacId: string, cid: number) => Promise<Vacante>;
   simular: (vacId: string, cid: number) => Promise<Vacante>;
@@ -183,6 +185,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     marcarCapacitacion: (id, cid, modulo) => runVac(() => pipelineService.marcarCapacitacion(id, cid, modulo)),
     docsContratoListos: (id, cid) => runVac(() => pipelineService.docsContrato(id, cid)),
     enviarOferta: (id, cid, monto, fecha, ubic) => runVac(() => pipelineService.enviarOferta(id, cid, monto, fecha, ubic)),
+    rechazarOferta: (id, cid, m) => runVac(() => pipelineService.rechazarOferta(id, cid, m)),
+    confirmarMovimiento: (id, cid) => runVac(() => pipelineService.confirmarMovimiento(id, cid)),
     aceptarOferta: (id, cid) => runVac(() => pipelineService.aceptarOferta(id, cid)),
     firmarContrato: (id, cid) => runVac(() => pipelineService.firmarContrato(id, cid)),
     simular: (id, cid) => runVac(() => pipelineService.simular(id, cid)),

@@ -178,6 +178,15 @@ export interface PipelineEntry {
   cuentaBanco?: string;
   /** Solo internos: mensaje de despedida que el candidato deja a su formador actual. */
   mensajeLiberacion?: string;
+  /**
+   * Solo internos: el candidato leyó el aviso de transferencia y confirmó el movimiento.
+   *
+   * Se guarda en vez de derivarse porque no hay ningún otro dato del que se pueda deducir: es un
+   * acuse de lectura, y si viviera en el estado local de la vista se perdería al recargar.
+   */
+  movimientoConfirmado?: boolean;
+  /** Vacante preventiva que se publicó al liberar su puesto. Evita crearla dos veces. */
+  preventivaVacId?: string;
   numEmpleado?: string;
   motivoRechazo?: string;
   /** Módulos de inducción/capacitación completados por el candidato (visibles para el formador). */
