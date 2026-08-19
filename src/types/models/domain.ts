@@ -205,6 +205,14 @@ export interface Vacante {
   /** Estado de la vacante antes de solicitar la edición (para restaurarlo al resolver). */
   cambiosDesde?: string;
   archivados: number[];
+  /**
+   * Colaborador designado como sucesor de esta posición.
+   *
+   * Se guarda en la vacante y no en el candidato para que la relación sea una sola por vacante:
+   * "quién cubre esta posición" tiene una respuesta, y el Marketplace la puede leer sin recorrer
+   * todos los candidatos. Aparece destacado al frente del Marketplace mientras la vacante busca.
+   */
+  sucesorCid?: number;
   pool?: PoolItem[];
   /** Solicitudes al administrador (formador asignado, centro de costos). Las nuevas van al frente. */
   solicitudes?: Solicitud[];

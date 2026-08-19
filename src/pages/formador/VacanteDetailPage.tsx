@@ -29,6 +29,7 @@ import { Celebracion } from "../../components/formador/Celebracion";
 import { BusquedaIAOverlay, CategorizarModal, CompartirModal, SolicitarMasModal } from "../../components/formador/poolModals";
 import { money, diasActivaLabel, mapsUrl, folioCita } from "../../utils/format";
 import { procesoActivoEnOtra } from "../../utils/pipeline";
+import { matchScore } from "../../utils/match";
 import { nivelMovilidad } from "../../utils/movilidad";
 import { descargarCV } from "../../utils/descargarCV";
 import { candidatoElegido, faseVacante } from "../../utils/fases";
@@ -201,7 +202,28 @@ export function VacanteDetailPage() {
 
   const poolAll: PoolRow[] = (v.pool || []).map(({ cid, match }) => ({ cid, match, c: cand(cid)!, p: v.pipeline[cid] }));
   const poolArch = poolAll.filter((x) => archivados.includes(x.cid));
-  const poolVis = poolAll.filter((x) => !archivados.includes(x.cid) && pasaFiltro(x.c));
+
+  /**
+   * Sucesor designado de la posición. Se muestra AUNQUE no esté en el pool: designarlo es una
+   * decisión del formador, no un resultado del matcher, así que un match por debajo del umbral no
+   * puede hacerlo desaparecer. Si no está en el pool, su porcentaje se calcula aquí con el mismo
+   * `matchScore` que usa el backend.
+   */
+  const sucesor: PoolRow | null = (() => {
+    if (v.sucesorCid == null || archivados.includes(v.sucesorCid)) return null;
+    const c = cand(v.sucesorCid);
+    if (!c) return null;
+    // Respeta los filtros como cualquier otra fila: si el formador filtra por externos, el
+    // sucesor (que siempre es interno) desaparece igual que el resto.
+    if (!pasaFiltro(c)) return null;
+    const enPool = poolAll.find((x) => x.cid === v.sucesorCid);
+    return enPool ?? { cid: c.id, match: matchScore(c, v.req), c, p: v.pipeline[c.id] };
+  })();
+
+  // Fuera de las bandas: ya se pinta arriba y no debe salir dos veces.
+  const poolVis = poolAll.filter(
+    (x) => !archivados.includes(x.cid) && x.cid !== sucesor?.cid && pasaFiltro(x.c),
+  );
 
   return (
     <div>
@@ -311,7 +333,7 @@ export function VacanteDetailPage() {
             </div>
           )}
 
-          {poolVis.length === 0 ? (
+          {poolVis.length === 0 && !sucesor ? (
             <div className="card" style={{ textAlign: "center", padding: "36px 24px" }}>
               {fActivo ? (
                 <>
@@ -329,7 +351,20 @@ export function VacanteDetailPage() {
               )}
             </div>
           ) : (
-            BANDAS.map((b) => {
+            <>
+            {/* El sucesor encabeza el Marketplace: es la persona que el formador ya había decidido
+                que cubriría esta posición, y verla después de un ranking la enterraría. */}
+            {sucesor && (
+              <div>
+                <div className="band-div">
+                  <b style={{ color: "var(--gold-dark)" }}>Candidato sucesor</b>
+                  <span className="cnt">· designado para cubrir esta posición</span>
+                  <div className="ln" style={{ background: "var(--gold)" }} />
+                </div>
+                {poolCard(sucesor, false)}
+              </div>
+            )}
+            {BANDAS.map((b) => {
               const grupo = poolVis.filter((x) => b.test(x.match));
               if (!grupo.length) return null;
               return (
@@ -342,7 +377,8 @@ export function VacanteDetailPage() {
                   {grupo.map((x) => poolCard(x, false))}
                 </div>
               );
-            })
+            })}
+            </>
           )}
 
           {verArch && poolArch.length > 0 && (
