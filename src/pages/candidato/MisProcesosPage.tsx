@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Briefcase, MapPin, Send, Video, Sparkles, CheckCircle2, ClipboardCheck, ShieldCheck,
   CalendarCheck, Link2, Landmark, ExternalLink, QrCode, Edit3, Clock, FileSignature, PartyPopper, XCircle,
-  Download, Search, MessageSquare,
+  Download, Search, MessageSquare, ArrowRight,
 } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
@@ -25,6 +25,7 @@ import {
 import { PerfilEditor } from "../../components/candidato/PerfilEditor";
 import { OfertaInterna } from "../../components/candidato/OfertaInterna";
 import { MensajeLiberacion } from "../../components/candidato/MensajeLiberacion";
+import { CarruselBajaAlta } from "../../components/candidato/CarruselBajaAlta";
 import { CapacitacionModulo } from "../../components/common/CapacitacionModulo";
 import {
   mapsUrl, psicoVigente, psicoVigenteHasta, abrirAperturaCuenta, folioCita,
@@ -70,6 +71,9 @@ export function MisProcesosPage() {
   const [rechazarDe, setRechazarDe] = useState<Vacante | null>(null);
   const [filtrosLoc, setFiltrosLoc] = useState<Record<string, FiltroLocal>>({});
   const [editarPerfil, setEditarPerfil] = useState(false);
+  /** Vacante cuyo proceso de baja y alta está abierto en el carrusel. */
+  const [bajaAlta, setBajaAlta] = useState<Vacante | null>(null);
+  const [cerrandoMov, setCerrandoMov] = useState(false);
 
   if (!cand) return <p>Cargando…</p>;
   const onBuscar = () => navigate("/candidato/buscar");
@@ -321,10 +325,15 @@ export function MisProcesosPage() {
               </>
             )}
 
-            {/* El interno ve una carta distinta: compara contra lo que deja atrás. */}
+            {/* El interno ve una carta distinta: compara contra lo que deja atrás.
+                Y acepta SIN modal de confirmación: el paso siguiente ya es una pantalla que le
+                explica en qué se está metiendo (la lista de lo que tiene que dejar listo) y que
+                además le pide confirmar el movimiento. Un modal antes de eso preguntaba dos veces
+                lo mismo. El externo sí lo conserva: para él, aceptar dispara el contrato. */}
             {p.estado === "oferta_enviada" && cand.tipo === "interno" && (
               <OfertaInterna cand={cand} v={v} p={p}
-                onAceptar={() => setConfirmOferta(v)} onRechazar={() => setRechazarOferta(v)} />
+                onAceptar={() => { void actions.aceptarOferta(v.id, cand.id); toast("¡Oferta aceptada!"); }}
+                onRechazar={() => setRechazarOferta(v)} />
             )}
 
             {p.estado === "oferta_enviada" && cand.tipo === "externo" && (
@@ -390,13 +399,46 @@ export function MisProcesosPage() {
                   }}
                 />
                 <div className="card" style={{ marginTop: 12 }}>
-                  <p className="help" style={{ marginTop: 0, marginBottom: 12 }}>
-                    No olvides <b>agendar tu reunión de cierre</b> con tu formador actual. Tu
-                    <b> fecha de ingreso</b> y tu <b>nueva sede</b> se te notificarán cuando el
-                    proceso se haya completado, lo cual puede tomar <b>entre 2 y 4 semanas</b>.
-                  </p>
-                  <label>Estatus de tu transferencia</label>
-                  <div style={{ marginTop: 8, maxWidth: 620 }}><PasosTransferencia actual={0} /></div>
+                  {/* Los pasos ya no están clavados en 0: siguen al contador que mueve el formador
+                      desde su panel, que es lo que hace que esta pantalla signifique algo. */}
+                  {(p.transferencia?.paso ?? 0) >= 2 ? (
+                    <>
+                      <h3 style={{ fontSize: 15, marginBottom: 6 }}>
+                        <CheckCircle2 size={16} style={{ verticalAlign: -3, color: "var(--ok)" }} /> Tu revisión de documentos terminó
+                      </h3>
+                      <p style={{ fontSize: 13.5, lineHeight: 1.55, marginBottom: 12 }}>
+                        Tu revisión de documentos está <b>finalizada y aprobada</b>, y tu fecha de
+                        ingreso y tu sede ya quedaron definidas.
+                      </p>
+                      <div className="grid2" style={{ marginBottom: 12 }}>
+                        <div>
+                          <label>Fecha de ingreso</label>
+                          <b style={{ fontSize: 13.5 }}>{p.oferta?.fecha || "—"}</b>
+                        </div>
+                        <div>
+                          <label>Te presentas en</label>
+                          <div style={{ fontSize: 13.5 }}>{p.oferta?.ubicacion || "—"}</div>
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 13.5, lineHeight: 1.55, marginBottom: 12 }}>
+                        Como siguiente paso, realiza tu <b>proceso de baja del puesto actual</b> y la
+                        <b> firma de tu nuevo puesto</b>. Con eso termina tu movilidad.
+                      </p>
+                      <button className="btn gold" onClick={() => setBajaAlta(v)}>
+                        <ArrowRight size={15} /> Comenzar proceso de baja y alta
+                      </button>
+                    </>
+                  ) : (
+                    <p className="help" style={{ marginTop: 0, marginBottom: 12 }}>
+                      No olvides <b>agendar tu reunión de cierre</b> con tu formador actual. Tu
+                      <b> fecha de ingreso</b> y tu <b>nueva sede</b> se te notificarán cuando el
+                      proceso se haya completado, lo cual puede tomar <b>entre 2 y 4 semanas</b>.
+                    </p>
+                  )}
+                  <label style={{ marginTop: 14, display: "block" }}>Estatus de tu transferencia</label>
+                  <div style={{ marginTop: 8, maxWidth: 620 }}>
+                    <PasosTransferencia actual={p.transferencia?.paso ?? 0} />
+                  </div>
                 </div>
               </>
             )}
@@ -493,6 +535,30 @@ export function MisProcesosPage() {
         onRechazar={(motivo) => { void actions.rechazar(rechazarDe.id, cand.id, motivo); setRechazarDe(null); toast("Invitación rechazada"); }} />}
       {videoV && <VideoIAModal cand={cand} v={videoV} onClose={() => setVideoV(null)}
         onDone={() => { void actions.videoIA(videoV.id, cand.id); setVideoV(null); toast("Video-entrevista enviada · tu ranking fue actualizado"); }} />}
+      {/* Cerrar el carrusel es lo que deja al candidato contratado: los dos últimos pasos del
+          trámite los da él, no su formador. */}
+      {bajaAlta && (
+        <CarruselBajaAlta
+          fecha={bajaAlta.pipeline[cand.id].oferta?.fecha ?? ""}
+          sede={bajaAlta.pipeline[cand.id].oferta?.ubicacion ?? ""}
+          puestoNuevo={bajaAlta.req.titulo}
+          puestoActual={cand.puesto}
+          enviando={cerrandoMov}
+          onClose={() => setBajaAlta(null)}
+          onFinalizar={async () => {
+            setCerrandoMov(true);
+            try {
+              await actions.finalizarMovilidad(bajaAlta.id, cand.id);
+              setBajaAlta(null);
+              toast("¡Movilidad completada! 🎉");
+            } catch (e) {
+              toast("No se pudo cerrar tu movilidad: " + (e as Error).message);
+            } finally {
+              setCerrandoMov(false);
+            }
+          }} />
+      )}
+
       {confirmOferta && (
         <Modal onClose={() => setConfirmOferta(null)}>
           <h3 style={{ marginBottom: 8 }}>Aceptar oferta</h3>

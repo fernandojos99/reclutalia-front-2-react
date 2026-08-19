@@ -251,6 +251,12 @@ img.avatar{object-fit:cover;}
 .vac-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:stretch;}
 @media(max-width:1200px){.vac-grid{grid-template-columns:1fr 1fr;}}
 @media(max-width:900px){.vac-grid{grid-template-columns:1fr;}}
+/* Puntos del carrusel de baja y alta. El activo se alarga en vez de solo cambiar de color:
+   así se distingue también sin percibir el matiz. */
+.carr-punto{width:8px;height:8px;border-radius:var(--r-pill);background:var(--line);border:none;padding:0;transition:width .18s ease,background .18s ease;}
+.carr-punto:hover{background:var(--gray);}
+.carr-punto.on{width:22px;background:var(--gold);}
+
 .heart{border:1px solid var(--line);background:var(--paper);border-radius:var(--r-pill);width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;color:var(--gray);flex-shrink:0;}
 .heart:hover{border-color:var(--bad);color:var(--bad);}
 .heart.on{color:var(--bad);border-color:#F0C4C1;background:var(--bad-soft);}
