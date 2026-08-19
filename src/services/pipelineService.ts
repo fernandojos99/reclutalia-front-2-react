@@ -50,6 +50,9 @@ export const pipelineService = {
     apiClient.post<Vacante>(`${base(v, cid)}/entrevista`, datos),
   seleccionar: (v: string, cid: number) =>
     apiClient.post<Vacante>(`${base(v, cid)}/seleccionar`),
+  /** Atajo del sucesor designado: entra directo como seleccionado, sin recorrer el proceso. */
+  seleccionarSucesor: (v: string, cid: number) =>
+    apiClient.post<Vacante>(`${base(v, cid)}/seleccionar-sucesor`),
   agendarMedico: (v: string, cid: number, datos: MedicoPayload) =>
     apiClient.post<Vacante>(`${base(v, cid)}/medico`, datos),
   validarMedico: (v: string, cid: number) =>
@@ -72,6 +75,13 @@ export const pipelineService = {
     apiClient.post<Vacante>(`${base(v, cid)}/oferta`, { monto, fecha, ubicacion }),
   firmarContrato: (v: string, cid: number) =>
     apiClient.post<Vacante>(`${base(v, cid)}/firmar`),
+  // Trámite de transferencia del interno: pasa dentro de "oferta_aceptada", no es una etapa nueva.
+  avanzarTransferencia: (v: string, cid: number) =>
+    apiClient.post<Vacante>(`${base(v, cid)}/transferencia/avanzar`),
+  definirIngreso: (v: string, cid: number, fecha: string, sede: string) =>
+    apiClient.post<Vacante>(`${base(v, cid)}/transferencia/ingreso`, { fecha, sede }),
+  finalizarMovilidad: (v: string, cid: number) =>
+    apiClient.post<Vacante>(`${base(v, cid)}/transferencia/finalizar`),
   aceptarOferta: (v: string, cid: number) =>
     apiClient.post<Vacante>(`${base(v, cid)}/oferta/aceptar`),
   simular: (v: string, cid: number) =>

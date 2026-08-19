@@ -185,6 +185,17 @@ export interface PipelineEntry {
    * acuse de lectura, y si viviera en el estado local de la vista se perdería al recargar.
    */
   movimientoConfirmado?: boolean;
+  /**
+   * Solo internos: avance del trámite de transferencia, en pasos que palomea el formador.
+   *
+   * NO es una etapa del pipeline. Vive **dentro** de `oferta_aceptada`: el pipeline se queda quieto
+   * ahí mientras RH y los dos formadores resuelven el movimiento, y este contador es lo único que
+   * se mueve. Por eso no está en `PIPE_IDX` ni en `FASES`.
+   *
+   * Va de 0 a 2 porque los dos últimos pasos (dar de baja el puesto y firmar el nuevo contrato) no
+   * los palomea nadie: los cierra el propio candidato, y al hacerlo el estado salta a `contratado`.
+   */
+  transferencia?: { paso: number };
   /** Vacante preventiva que se publicó al liberar su puesto. Evita crearla dos veces. */
   preventivaVacId?: string;
   numEmpleado?: string;

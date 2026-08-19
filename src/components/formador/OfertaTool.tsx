@@ -5,7 +5,7 @@
  * 30 % exige autorización de administración antes de poder enviar la oferta.
  */
 import { useState } from "react";
-import { Send, Calculator, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Send, Calculator, AlertTriangle, ShieldCheck, CalendarClock } from "lucide-react";
 import { Modal } from "../common/Modal";
 import { money, fechasQuincena } from "../../utils/format";
 import { DIRECCION_CORP } from "../../constants/catalogos";
@@ -26,7 +26,8 @@ export function OfertaTool({ v, cand, onSend }: Props) {
   // Sueldo fijo (tabulador). Desglose determinista para la calculadora de compensación.
   const sueldoTabulador = v.req.sueldo ?? Math.round((v.req.salarioMin + v.req.salarioMax) / 2 / 500) * 500;
 
-  const sueldoActual = cand.tipo === "interno" ? cand.sueldoActual ?? 0 : 0;
+  const interno = cand.tipo === "interno";
+  const sueldoActual = interno ? cand.sueldoActual ?? 0 : 0;
   const [topado, setTopado] = useState(false);
   const [autorizado, setAutorizado] = useState(false);
   const [pidiendo, setPidiendo] = useState(false);
@@ -92,24 +93,38 @@ export function OfertaTool({ v, cand, onSend }: Props) {
       </div>
 
       <div>
-        <div className="field">
-          <label>Fecha de firma e ingreso (mismo día)</label>
-          <select value={fecha} onChange={(e) => setFecha(e.target.value)}>
-            {fechas.map((f) => <option key={f} value={f}>{f}</option>)}
-            <option value="otra">Otra fecha…</option>
-          </select>
-          {otra && <input type="date" style={{ marginTop: 8 }} value={fechaLibre} onChange={(e) => setFechaLibre(e.target.value)} />}
-          <div className="help">{otra ? "Elige libremente la fecha de ingreso del candidato." : 'Inicios de quincena (día 1 o 16), o elige "Otra fecha" para una fecha libre.'}</div>
-        </div>
-        <div className="field">
-          <label>Ubicación donde el candidato debe presentarse</label>
-          <textarea rows={2} value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Dirección completa de presentación el primer día…" />
-          <div className="help">Se incluirá en la carta oferta y en la pantalla de bienvenida (con enlace a Google Maps).</div>
-        </div>
+        {/* Al interno no se le piden fecha ni sede: una transferencia todavía no las tiene. Se
+            acuerdan durante el trámite, con su formador actual de por medio, y hasta entonces
+            ponerlas aquí sería inventarlas. El externo sigue igual: para él, firmar e ingresar es
+            el mismo día y la sede ya está decidida. */}
+        {interno ? (
+          <div className="aibox" style={{ marginBottom: 12 }}>
+            <CalendarClock size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+            La <b>fecha de ingreso</b> y la <b>sede</b> no se definen aquí. Se acuerdan durante el
+            trámite de transferencia, una vez que {cand.nombre.split(" ")[0]} acepte su carta oferta.
+          </div>
+        ) : (
+          <>
+            <div className="field">
+              <label>Fecha de firma e ingreso (mismo día)</label>
+              <select value={fecha} onChange={(e) => setFecha(e.target.value)}>
+                {fechas.map((f) => <option key={f} value={f}>{f}</option>)}
+                <option value="otra">Otra fecha…</option>
+              </select>
+              {otra && <input type="date" style={{ marginTop: 8 }} value={fechaLibre} onChange={(e) => setFechaLibre(e.target.value)} />}
+              <div className="help">{otra ? "Elige libremente la fecha de ingreso del candidato." : 'Inicios de quincena (día 1 o 16), o elige "Otra fecha" para una fecha libre.'}</div>
+            </div>
+            <div className="field">
+              <label>Ubicación donde el candidato debe presentarse</label>
+              <textarea rows={2} value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} placeholder="Dirección completa de presentación el primer día…" />
+              <div className="help">Se incluirá en la carta oferta y en la pantalla de bienvenida (con enlace a Google Maps).</div>
+            </div>
+          </>
+        )}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button className="btn gold" disabled={!ubicacion.trim() || !fechaFinal || bloqueado}
+          <button className="btn gold" disabled={(!interno && (!ubicacion.trim() || !fechaFinal)) || bloqueado}
             title={bloqueado ? "Requiere autorización: el aumento supera el 30 %" : undefined}
-            onClick={() => onSend(sueldo, fechaFinal, ubicacion.trim())}>
+            onClick={() => onSend(sueldo, interno ? "" : fechaFinal, interno ? "" : ubicacion.trim())}>
             <Send size={15} /> Enviar carta oferta a {cand.nombre.split(" ")[0]}
           </button>
           {bloqueado && (

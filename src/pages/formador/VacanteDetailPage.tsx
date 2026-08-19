@@ -8,7 +8,7 @@ import {
   MapPin, Clock, ShieldCheck, CheckCircle2, Sparkles, Filter, Users, Plus, FileText,
   Archive, ArchiveRestore, Heart, FolderPlus, Share2, User, Download, Send, Star, Video,
   Calendar, CalendarCheck, Link2, ClipboardList, ClipboardCheck, Bell, PartyPopper, Zap, AlertCircle, FileSignature,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, UserCheck,
 } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
@@ -17,6 +17,7 @@ import { Avatar } from "../../components/common/Avatar";
 import { MatchRing } from "../../components/common/MatchRing";
 import { EstadoChip } from "../../components/common/EstadoChip";
 import { FasesBar } from "../../components/common/FasesBar";
+import { ConfirmarModal } from "../../components/common/ConfirmarModal";
 import { PerfilModal } from "../../components/candidato/PerfilModal";
 
 import { InvitarModal } from "../../components/formador/InvitarModal";
@@ -26,6 +27,7 @@ import { EntrevistaModal, VerEntrevistaModal, evalEmoji, evalLabel } from "../..
 import { EntrevistasExtra } from "../../components/formador/EntrevistasExtra";
 import { VideoIAResumenModal } from "../../components/formador/VideoIAResumenModal";
 import { OfertaTool } from "../../components/formador/OfertaTool";
+import { PasosMovilidad } from "../../components/formador/PasosMovilidad";
 import { Celebracion } from "../../components/formador/Celebracion";
 import { BusquedaIAOverlay, CategorizarModal, CompartirModal, SolicitarMasModal } from "../../components/formador/poolModals";
 import { money, diasActivaLabel, mapsUrl, folioCita } from "../../utils/format";
@@ -61,6 +63,8 @@ export function VacanteDetailPage() {
   const [tab, setTab] = useState<number | null>(null);
   const [perfil, setPerfil] = useState<{ c: Candidato; match: number } | null>(null);
   const [invitando, setInvitando] = useState<Candidato | null>(null);
+  /** Sucesor al que se va a seleccionar sin proceso. Se confirma antes: el salto es irreversible. */
+  const [seleccionarSucesor, setSeleccionarSucesor] = useState<Candidato | null>(null);
   const [selEnt, setSelEnt] = useState<number[]>([]);
   // Assessment: se convoca para UN candidato, así que guarda su cid, no una lista.
   const [assessment, setAssessment] = useState<number | null>(null);
@@ -77,6 +81,26 @@ export function VacanteDetailPage() {
   const [shareCand, setShareCand] = useState<Candidato | null>(null);
   const [solicitar, setSolicitar] = useState(false);
   const [firma, setFirma] = useState("");
+  /** Bloquea los botones del trámite de transferencia mientras la petición está en vuelo. */
+  const [enviandoMov, setEnviandoMov] = useState(false);
+
+  /**
+   * Envoltorio de los pasos del trámite de movilidad. Se comparte entre los dos botones porque el
+   * manejo de error es idéntico: el backend rechaza con un mensaje ya redactado para el formador
+   * (que falta la validación previa, que el proceso no está en el estado correcto), y lo único
+   * sensato es enseñárselo tal cual.
+   */
+  const correrMovilidad = async (accion: () => Promise<unknown>, aviso: string) => {
+    setEnviandoMov(true);
+    try {
+      await accion();
+      toast(aviso);
+    } catch (e) {
+      toast("No se pudo avanzar el trámite: " + (e as Error).message);
+    } finally {
+      setEnviandoMov(false);
+    }
+  };
 
   if (!v) return <p>Cargando vacante…</p>;
   const tabQuery = Number(searchParams.get("tab"));
@@ -151,7 +175,7 @@ export function VacanteDetailPage() {
     );
   };
 
-  const poolCard = ({ cid, match, c, p }: PoolRow, archivado: boolean) => (
+  const poolCard = ({ cid, match, c, p }: PoolRow, archivado: boolean, esSucesor = false) => (
     <div className="trow" key={cid} style={archivado ? { opacity: 0.7 } : {}}>
       <MatchRing v={match} />
       <Avatar nombre={c.nombre} />
@@ -179,9 +203,20 @@ export function VacanteDetailPage() {
             <div style={{ display: "flex", gap: 6 }}>
               <button className="btn ghost sm" onClick={() => setPerfil({ c, match })}><User size={13} /> Ver perfil</button>
               <button className="btn ghost sm" onClick={() => descargarCV(c)}><Download size={13} /> CV</button>
+              {/* Al sucesor se le ofrecen DOS caminos, y son distintos a propósito: invitarlo lo
+                  mete al proceso normal —compite, se le entrevista—, mientras que seleccionarlo
+                  reconoce que la decisión ya estaba tomada al designarlo y se salta los pasos
+                  intermedios. Al resto del Marketplace solo se le puede invitar. */}
               {!p && (procesoActivoEnOtra(vacantes, cid, v.id)
                 ? <span className="chip" title="El candidato ya participa en otro proceso de selección"><AlertCircle size={11} /> En otro proceso</span>
-                : <button className="btn gold sm" onClick={() => setInvitando(c)}><Send size={13} /> Invitar</button>)}
+                : <>
+                    <button className="btn gold sm" onClick={() => setInvitando(c)}><Send size={13} /> Invitar</button>
+                    {esSucesor && (
+                      <button className="btn dark sm" onClick={() => setSeleccionarSucesor(c)}>
+                        <UserCheck size={13} /> Seleccionar
+                      </button>
+                    )}
+                  </>)}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button className={"iconact fav" + (favs.includes(cid) ? " on" : "")} title="Marcar como favorito" onClick={() => void actions.toggleFavCand(v.formadorId, cid)}><Heart size={15} /></button>
@@ -364,7 +399,7 @@ export function VacanteDetailPage() {
                   <span className="cnt">· designado para cubrir esta posición</span>
                   <div className="ln" style={{ background: "var(--gold)" }} />
                 </div>
-                {poolCard(sucesor, false)}
+                {poolCard(sucesor, false, true)}
               </div>
             )}
             {BANDAS.map((b) => {
@@ -618,49 +653,67 @@ export function VacanteDetailPage() {
             <div style={{ textAlign: "center", padding: 26 }}>
               <Send size={26} color="var(--gold-dark)" style={{ marginBottom: 8 }} />
               <h3>Carta oferta enviada</h3>
-              <p style={{ color: "var(--gray)", fontSize: 13, margin: "6px 0 14px" }}>{money(seleccionado.p.oferta?.monto ?? 0)} /mes · ingreso el {seleccionado.p.oferta?.fecha}. Te notificaremos cuando {seleccionado.c.nombre.split(" ")[0]} responda.</p>
+              <p style={{ color: "var(--gray)", fontSize: 13, margin: "6px 0 14px" }}>
+                {money(seleccionado.p.oferta?.monto ?? 0)} /mes
+                {seleccionado.c.tipo === "interno" ? " · fecha de ingreso por acordar" : ` · ingreso el ${seleccionado.p.oferta?.fecha}`}.
+                {" "}Te notificaremos cuando {seleccionado.c.nombre.split(" ")[0]} responda.
+              </p>
               <SimBtn cid={seleccionado.cid} label="Simular aceptación de oferta" />
             </div>
           )}
-          {seleccionado && seleccionado.p.estado === "oferta_aceptada" && (
+          {/* En un movimiento interno el formador YA NO FIRMA: la etapa de contratación desaparece
+              de su lado y en su lugar acompaña el trámite de transferencia. Los dos últimos pasos
+              los cierra el propio colaborador, y con eso el proceso queda contratado. */}
+          {seleccionado && seleccionado.p.estado === "oferta_aceptada" && seleccionado.c.tipo === "interno" && (
+            <PasosMovilidad
+              cand={seleccionado.c} p={seleccionado.p} enviando={enviandoMov}
+              formadorActual={formadores.find((f) => f.id === seleccionado.c.formadorId)?.nombre}
+              onAvanzar={() => void correrMovilidad(
+                () => actions.avanzarTransferencia(v.id, seleccionado.cid),
+                "Validación de documentos completada",
+              )}
+              onDefinir={(fecha, sede) => void correrMovilidad(
+                () => actions.definirIngreso(v.id, seleccionado.cid, fecha, sede),
+                "Fecha de ingreso y sede confirmadas",
+              )}
+            />
+          )}
+          {seleccionado && seleccionado.p.estado === "oferta_aceptada" && seleccionado.c.tipo === "externo" && (
             <div>
               <h3 style={{ marginBottom: 4 }}>Firma del contrato · {seleccionado.c.nombre}</h3>
               <p className="help" style={{ marginBottom: 14 }}>
                 {seleccionado.c.nombre.split(" ")[0]} aceptó la oferta ({money(seleccionado.p.oferta?.monto ?? 0)} /mes · ingreso {seleccionado.p.oferta?.fecha}).{" "}
-                {seleccionado.c.tipo === "interno"
-                  ? "Ya cobra en la empresa, así que no hay cuenta de nómina que esperar: puedes firmar en cuanto captures su firma."
-                  : "Para firmar necesitas su cuenta de nómina registrada."}
+                Para firmar necesitas su cuenta de nómina registrada.
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
                 <button className="btn ghost sm" onClick={() => toast("Kit de contratación enviado (Mintrace · simulado)")}><Send size={13} /> Enviar kit de contratación (Mintrace)</button>
-                {/* El colaborador interno no abre cuenta: su pantalla le pide el mensaje de
-                    liberación en vez de la apertura, así que `cuentaBanco` nunca se llena y
-                    esperarla dejaba el proceso de movilidad sin poder cerrarse nunca. */}
-                {seleccionado.c.tipo === "interno"
-                  ? <span className="chip ok"><CheckCircle2 size={11} /> Colaborador interno · ya tiene cuenta de nómina</span>
-                  : seleccionado.p.cuentaBanco
-                    ? <span className="chip ok"><CheckCircle2 size={11} /> Cuenta de nómina registrada ••••{String(seleccionado.p.cuentaBanco).slice(-4)}</span>
-                    : <><span className="chip gold"><Clock size={11} /> Esperando apertura de cuenta del candidato</span><SimBtn cid={seleccionado.cid} label="Simular apertura de cuenta" /></>}
+                {seleccionado.p.cuentaBanco
+                  ? <span className="chip ok"><CheckCircle2 size={11} /> Cuenta de nómina registrada ••••{String(seleccionado.p.cuentaBanco).slice(-4)}</span>
+                  : <><span className="chip gold"><Clock size={11} /> Esperando apertura de cuenta del candidato</span><SimBtn cid={seleccionado.cid} label="Simular apertura de cuenta" /></>}
               </div>
               <div className="field" style={{ maxWidth: 420 }}>
                 <label>Ingresar firma del candidato (nombre completo) *</label>
                 <input value={firma} onChange={(e) => setFirma(e.target.value)} placeholder={seleccionado.c.nombre} style={{ fontStyle: "italic" }} />
                 <div className="help">La firma capturada queda asociada al contrato (simulado).</div>
               </div>
-              {/* Al interno solo se le pide la firma; la cuenta de nómina únicamente al externo. */}
               <button className="btn gold"
-                disabled={(seleccionado.c.tipo !== "interno" && !seleccionado.p.cuentaBanco) || !firma.trim()}
+                disabled={!seleccionado.p.cuentaBanco || !firma.trim()}
                 onClick={() => { void actions.firmarContrato(v.id, seleccionado.cid); setFirma(""); setTabActual(6); toast("Contrato firmado · contratación completada 🎉"); }}>
                 <FileSignature size={15} /> Firmar contrato
               </button>
-              {(seleccionado.c.tipo === "interno" || seleccionado.p.cuentaBanco) && !firma.trim() && (
+              {seleccionado.p.cuentaBanco && !firma.trim() && (
                 <div className="help" style={{ marginTop: 6 }}>Captura el nombre completo del candidato como firma para habilitar el botón.</div>
               )}
             </div>
           )}
           {contratado && (
             <div>
-              <div className="chip ok" style={{ marginBottom: 10 }}><CheckCircle2 size={12} /> Contrato firmado — ve a la pestaña Contratación</div>
+              <div className="chip ok" style={{ marginBottom: 10 }}>
+                <CheckCircle2 size={12} />{" "}
+                {contratado.c.tipo === "interno"
+                  ? "Movilidad completada — ve a la pestaña Contratación"
+                  : "Contrato firmado — ve a la pestaña Contratación"}
+              </div>
               <div className="grid3">
                 <div className="stat"><b style={{ fontSize: 18 }}>{contratado.p.numEmpleado}</b><span>Número de empleado</span></div>
                 <div className="stat"><b style={{ fontSize: 15 }}>{contratado.p.numEmpleado}@elektra.com.mx</b><span>Correo corporativo</span></div>
@@ -708,6 +761,26 @@ export function VacanteDetailPage() {
         extra={!v.pipeline[perfil.c.id] && abierta && <button className="btn gold" onClick={() => { setInvitando(perfil.c); setPerfil(null); }}><Send size={15} /> Invitar a postularse</button>} />}
       {invitando && <InvitarModal cand={invitando} v={v} onClose={() => setInvitando(null)}
         onSend={(msg) => { void actions.invitar(v.id, invitando.id, msg); setInvitando(null); toast("Invitación enviada a " + invitando.nombre.split(" ")[0]); }} />}
+      {/* Se confirma porque no hay vuelta atrás cómoda: cierra el proceso de todos los demás
+          candidatos y deja a este a un paso de la carta oferta. */}
+      {seleccionarSucesor && (
+        <ConfirmarModal
+          titulo={`Seleccionar a ${seleccionarSucesor.nombre.split(" ")[0]} sin proceso`}
+          mensaje={`${seleccionarSucesor.nombre} pasa directo a esperar su carta oferta: no habrá entrevistas, ` +
+            "ranking ni documentación. El proceso del resto de candidatos de esta vacante se cierra."}
+          confirmar="Seleccionar sucesor"
+          cancelar="Cancelar"
+          onCerrar={() => setSeleccionarSucesor(null)}
+          onConfirmar={() => {
+            const nombre = seleccionarSucesor.nombre.split(" ")[0];
+            void correrMovilidad(
+              () => actions.seleccionarSucesor(v.id, seleccionarSucesor.id),
+              `${nombre} fue seleccionado · prepara su carta oferta`,
+            );
+            setSeleccionarSucesor(null);
+            setTabActual(5);
+          }} />
+      )}
       {assessment != null && cand(assessment) && (
         <AssessmentModal cand={cand(assessment)!} formadores={formadores} formadorVacante={v.formadorId}
           onClose={() => setAssessment(null)}

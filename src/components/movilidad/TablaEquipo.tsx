@@ -16,7 +16,21 @@ import {
   accionRecomendada, antiguedad, estatusHonesteles, estatusMovilidad, haceCuanto,
   nivelDesempeno, nivelMovilidad, vacantesAfines, TONO_ACCION, type EstadoMovilidad,
 } from "../../utils/movilidad";
-import type { Candidato, Vacante } from "../../types/models/domain";
+import type { Candidato, NivelMovilidad, Vacante } from "../../types/models/domain";
+
+/**
+ * Cómo se llama el semáforo EN ESTA TABLA.
+ *
+ * El catálogo `MOVILIDAD` sigue diciendo "Movilidad alta/media/baja", y así se sigue viendo en la
+ * ficha de talento y en el modal de invitar. Aquí se renombra a propósito: esta tabla es la lectura
+ * del formador sobre su equipo, y en esa conversación el semáforo no describe cuánto se puede mover
+ * alguien, sino en qué situación está. Los tonos no cambian.
+ */
+const TERMINO: Record<NivelMovilidad, string> = {
+  alta: "Top talent",
+  media: "Perfil satisfactorio",
+  baja: "En desarrollo / riesgo",
+};
 
 /** Tono del estatus: lo que pide atención en rojo, lo que ya está en marcha en verde. */
 const TONO_ESTATUS: Record<EstadoMovilidad, string> = {
@@ -82,7 +96,7 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil, onRecomendar, onAgr
               <th style={{ minWidth: 110 }}>DESEMPEÑO</th>
               <th style={{ minWidth: 260 }}>HABILIDADES</th>
               <th style={{ minWidth: 170 }}>INTERÉS</th>
-              <th style={{ minWidth: 110 }}>SEMÁFORO</th>
+              <th style={{ minWidth: 170 }}>SEMÁFORO</th>
               <th style={{ minWidth: 110 }}>ACTAS</th>
               <th style={{ minWidth: 120 }}>VACANTES AFINES</th>
               <th style={{ minWidth: 150 }}>
@@ -128,7 +142,7 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil, onRecomendar, onAgr
                     {intereses.length ? intereses[0] : <span className="help">Sin definir</span>}
                     {intereses.length > 1 && <div className="help">y {intereses.length - 1} más</div>}
                   </td>
-                  <td>{mov ? <Chip tone={mov.tono}>{mov.corto}</Chip> : <span className="help">—</span>}</td>
+                  <td>{mov ? <Chip tone={mov.tono}>{TERMINO[mov.nivel]}</Chip> : <span className="help">—</span>}</td>
                   {/* Honesteles: en la tabla basta el recuento; los motivos están en la ficha. */}
                   <td>
                     {honesteles

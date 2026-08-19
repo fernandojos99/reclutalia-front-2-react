@@ -54,6 +54,7 @@ interface Actions {
   confirmarSlot: (vacId: string, cid: number, slot: string) => Promise<Vacante>;
   registrarEntrevista: (vacId: string, cid: number, datos: EntrevistaPayload) => Promise<Vacante>;
   seleccionar: (vacId: string, cid: number) => Promise<Vacante>;
+  seleccionarSucesor: (vacId: string, cid: number) => Promise<Vacante>;
   enviarMensajeLiberacion: (vacId: string, cid: number, mensaje: string) => Promise<Vacante>;
   // Entrevistas adicionales pedidas a otros formadores.
   solicitarEntrevistaExtra: (vacId: string, cid: number, formadorId: string) => Promise<Vacante>;
@@ -74,6 +75,9 @@ interface Actions {
   confirmarMovimiento: (vacId: string, cid: number) => Promise<Vacante>;
   aceptarOferta: (vacId: string, cid: number) => Promise<Vacante>;
   firmarContrato: (vacId: string, cid: number) => Promise<Vacante>;
+  avanzarTransferencia: (vacId: string, cid: number) => Promise<Vacante>;
+  definirIngreso: (vacId: string, cid: number, fecha: string, sede: string) => Promise<Vacante>;
+  finalizarMovilidad: (vacId: string, cid: number) => Promise<Vacante>;
   simular: (vacId: string, cid: number) => Promise<Vacante>;
   resetearEtapa: (vacId: string) => Promise<Vacante>;
   archivarCand: (vacId: string, cid: number) => Promise<Vacante>;
@@ -170,6 +174,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     confirmarSlot: (id, cid, s) => runVac(() => pipelineService.confirmarSlot(id, cid, s)),
     registrarEntrevista: (id, cid, d) => runVac(() => pipelineService.registrarEntrevista(id, cid, d)),
     seleccionar: (id, cid) => runVac(() => pipelineService.seleccionar(id, cid)),
+    seleccionarSucesor: (id, cid) => runVac(() => pipelineService.seleccionarSucesor(id, cid)),
     enviarMensajeLiberacion: (id, cid, m) => runVac(() => pipelineService.enviarMensajeLiberacion(id, cid, m)),
     solicitarEntrevistaExtra: (id, cid, fid) => runVac(() => entrevistaExtraService.solicitar(id, cid, fid)),
     cancelarEntrevistaExtra: (id, cid, fid) => runVac(() => entrevistaExtraService.cancelar(id, cid, fid)),
@@ -189,6 +194,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     confirmarMovimiento: (id, cid) => runVac(() => pipelineService.confirmarMovimiento(id, cid)),
     aceptarOferta: (id, cid) => runVac(() => pipelineService.aceptarOferta(id, cid)),
     firmarContrato: (id, cid) => runVac(() => pipelineService.firmarContrato(id, cid)),
+    avanzarTransferencia: (id, cid) => runVac(() => pipelineService.avanzarTransferencia(id, cid)),
+    definirIngreso: (id, cid, fecha, sede) => runVac(() => pipelineService.definirIngreso(id, cid, fecha, sede)),
+    finalizarMovilidad: (id, cid) => runVac(() => pipelineService.finalizarMovilidad(id, cid)),
     simular: (id, cid) => runVac(() => pipelineService.simular(id, cid)),
     resetearEtapa: (id) => runVac(() => pipelineService.retrocederEtapa(id)),
     archivarCand: (id, cid) => runVac(() => pipelineService.archivar(id, cid)),
