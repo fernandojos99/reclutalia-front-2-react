@@ -73,6 +73,14 @@ export interface Requisito {
   /** Posición en pausa: no se recluta, aunque la vacante siga viva. */
   pausada: boolean;
   tipoVacante: string;
+  /**
+   * Filtros que se le exigen al candidato en el proceso (catálogo `FILTROS_VACANTE`).
+   *
+   * "Examen médico" NO vive aquí: tiene su propio campo `examenMedico`, que ya condiciona el
+   * proceso del candidato. La sección de Detalle de caja pinta los dos juntos, pero el dato es uno
+   * por filtro para no tener dos verdades sobre lo mismo.
+   */
+  filtros?: string[];
   puedeSerSuperior: boolean;
   ubicacionNoRelevante: boolean;
   expNoRelevante: boolean;

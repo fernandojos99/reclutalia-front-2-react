@@ -21,6 +21,7 @@ import { useData } from "../../../store/DataProvider";
 import { useDemo } from "../../../contexts/DemoContext";
 import { useBot } from "../../../contexts/BotContext";
 import { herramientas, COMISION_SEMANAL } from "../../../constants/paqueteVacante";
+import { FILTROS_VACANTE, FILTRO_EXAMEN_MEDICO } from "../../../constants/catalogos";
 import { money } from "../../../utils/format";
 import type { Solicitud, Vacante } from "../../../types/models/domain";
 
@@ -61,6 +62,33 @@ export function DetalleCaja({ v, onCerrar }: Props) {
   const pendiente = (tipo: Solicitud["tipo"]) =>
     (v.solicitudes ?? []).some((s) => s.estado === "pendiente" && s.tipo === tipo);
   const val = (s: string) => s?.trim() || "—";
+
+  /**
+   * Filtros del proceso. "Examen médico" es el único con efecto real hoy (obliga al candidato a
+   * agendarlo y aprobarlo antes de poder enviar su documentación), y por eso se lee y se escribe en
+   * su propio campo en vez de en la lista.
+   */
+  const filtroActivo = (f: string): boolean =>
+    f === FILTRO_EXAMEN_MEDICO ? !!req.examenMedico : (req.filtros ?? []).includes(f);
+
+  /** Se guarda solo, sin `nota`: `vacanteService.editar` no toca el historial ni notifica. */
+  const alternarFiltro = async (f: string) => {
+    const activo = filtroActivo(f);
+    const nuevo =
+      f === FILTRO_EXAMEN_MEDICO
+        ? { ...req, examenMedico: !activo }
+        : {
+            ...req,
+            filtros: activo
+              ? (req.filtros ?? []).filter((x) => x !== f)
+              : [...(req.filtros ?? []), f],
+          };
+    try {
+      await actions.editarVacante(v.id, nuevo);
+    } catch (e) {
+      toast("No se pudo guardar el filtro: " + (e as Error).message);
+    }
+  };
 
   /** Lápiz de edición, o el aviso de que ya hay una solicitud viva sobre ese campo. */
   const lapiz = (tipo: "formador" | "centroCostos", titulo: string) =>
@@ -173,6 +201,32 @@ export function DetalleCaja({ v, onCerrar }: Props) {
                   <InfoTip etiqueta={`Ver detalle de ${h.titulo}`}>{h.detalle}</InfoTip>
                 </li>
               ))}
+            </ul>
+          </Seccion>
+
+          <Seccion
+            titulo="Filtros"
+            desc="Requisitos que se le piden al candidato durante el proceso. El cambio se guarda solo."
+          >
+            <ul className="ofrece-lista filtros-lista">
+              {FILTROS_VACANTE.map((f) => {
+                const on = filtroActivo(f);
+                return (
+                  <li key={f}>
+                    <button type="button" role="switch" aria-checked={on} aria-label={f}
+                      className={"switch" + (on ? " on" : "")}
+                      onClick={() => void alternarFiltro(f)}><i /></button>
+                    <span>{f}</span>
+                    {f === FILTRO_EXAMEN_MEDICO && (
+                      <InfoTip etiqueta="Ver detalle del examen médico">
+                        Es el único filtro que hoy cambia el proceso: si lo activas, el candidato
+                        tendrá que agendar su examen y aprobarlo antes de poder enviar su
+                        documentación de contratación.
+                      </InfoTip>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </Seccion>
         </div>

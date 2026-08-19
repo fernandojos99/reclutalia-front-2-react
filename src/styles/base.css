@@ -559,6 +559,10 @@ img.avatar{object-fit:cover;}
 .ofrece-lista li{display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;}
 .ofrece-lista li:last-child{margin-bottom:0;}
 .ofrece-lista svg{color:var(--ok);flex-shrink:0;margin-top:3px;}
+/* Lista de filtros de "Detalle de caja": misma tipografía que `.ofrece-lista`, pero con switches
+   en vez de palomitas, así que las filas se centran y respiran un poco más. */
+.filtros-lista li{align-items:center;gap:10px;margin-bottom:9px;}
+.filtros-lista svg{color:var(--gray);margin-top:0;}
 
 /* Botón azul secundario, para no poner dos botones sólidos idénticos juntos ("Explicar con IA"
    junto a "Generar y guardar"). */
