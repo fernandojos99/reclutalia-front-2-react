@@ -10,10 +10,19 @@ import { Chip } from "./Chip";
 
 const ETAPAS = ["Postulación", "Entrevista", "Contratación"];
 
-export function MiniPipe({ estado }: { estado: string }) {
+/**
+ * `evaluacionesPendientes` son las entrevistas solicitadas a otros formadores (o los evaluadores de
+ * un Assessment center) que todavía no han entregado su feedback. Mientras quede alguna, la etapa
+ * "Entrevista" no se palomea aunque el pipeline ya haya avanzado: para el candidato su evaluación
+ * no está completa hasta que opinan todos. Y si se pide una entrevista adicional después, la etapa
+ * vuelve a pendiente sola, porque esto se deriva y no se guarda.
+ */
+export function MiniPipe({ estado, evaluacionesPendientes = 0 }: {
+  estado: string; evaluacionesPendientes?: number;
+}) {
   const idx = PIPE_IDX[estado] ?? 0;
   if (idx < 0) return <Chip tone="bad" icon={XCircle}>No continúa en el proceso</Chip>;
-  const completas = [idx >= 4, idx >= 6, idx >= 11];
+  const completas = [idx >= 4, idx >= 6 && evaluacionesPendientes === 0, idx >= 11];
   const activa = completas[0] ? (completas[1] ? 2 : 1) : 0;
   return (
     <div className="ftl">

@@ -9,7 +9,7 @@
  * Es una tabla ancha a propósito. Cada columna lleva su `minWidth` para que no se aplaste el
  * contenido, y el scroll horizontal lo pone `.table-wrap`.
  */
-import { HandHeart, Share2 } from "lucide-react";
+import { Crown, HandHeart, Share2 } from "lucide-react";
 import { Chip } from "../common/Chip";
 import { InfoTip } from "../common/InfoTip";
 import {
@@ -55,9 +55,13 @@ interface Props {
   onVerPerfil: (c: Candidato) => void;
   onRecomendar: (c: Candidato) => void;
   onAgradecer: (c: Candidato) => void;
+  onSucesor: (c: Candidato) => void;
 }
 
-export function TablaEquipo({ equipo, vacantes, onVerPerfil, onRecomendar, onAgradecer }: Props) {
+export function TablaEquipo({ equipo, vacantes, onVerPerfil, onRecomendar, onAgradecer, onSucesor }: Props) {
+  /** Posición de la que este colaborador ya es sucesor, si la hay. Solo puede serlo de una. */
+  const sucesorDe = (c: Candidato) => vacantes.find((v) => v.sucesorCid === c.id);
+
   if (!equipo.length) {
     return (
       <div className="card" style={{ textAlign: "center", color: "var(--gray)", padding: 36 }}>
@@ -146,7 +150,14 @@ export function TablaEquipo({ equipo, vacantes, onVerPerfil, onRecomendar, onAgr
                   <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                     <button className="btn ghost sm" onClick={() => onVerPerfil(c)}>Ver perfil</button>{" "}
                     <button className="btn ghost sm" title="Compartir este perfil con otro formador"
-                      onClick={() => onRecomendar(c)}><Share2 size={12} /> Recomendar</button>
+                      onClick={() => onRecomendar(c)}><Share2 size={12} /> Recomendar</button>{" "}
+                    {/* El botón se pinta en dorado cuando ya es sucesor de algo, para no tener que
+                        abrir la ventana solo para averiguarlo. */}
+                    <button className={"btn sm " + (sucesorDe(c) ? "gold" : "ghost")}
+                      title={sucesorDe(c)
+                        ? `Sucesor de "${sucesorDe(c)!.req.titulo}"`
+                        : "Designar como sucesor de una posición"}
+                      onClick={() => onSucesor(c)}><Crown size={12} /> Sucesor</button>
                     {/* Solo cuando ya se va: es el momento de cerrar bien con él. */}
                     {estatus === "Contratado" && (
                       <>

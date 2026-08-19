@@ -17,6 +17,7 @@ import { PerfilModal } from "../../components/candidato/PerfilModal";
 import { CompartirModal } from "../../components/formador/poolModals";
 import { TablaEquipo } from "../../components/movilidad/TablaEquipo";
 import { AgradecerModal } from "../../components/movilidad/AgradecerModal";
+import { SucesorModal } from "../../components/movilidad/SucesorModal";
 import { ProcesoMovilidadModal } from "../../components/movilidad/ProcesoMovilidadModal";
 import { agradecerColaborador, barrerInactivos } from "../../services/movilidadAgenteService";
 import {
@@ -48,15 +49,22 @@ function Metrica({ etiqueta, n, activo, onClick }: {
 }
 
 export function MovilidadInternaPage() {
-  const { candidatos, vacantes, formadores, reload } = useData();
+  const { candidatos, vacantes, formadores, reload, actions } = useData();
   const { formadorId, toast } = useDemo();
   const navigate = useNavigate();
   const [perfil, setPerfil] = useState<Candidato | null>(null);
   const [proceso, setProceso] = useState<Candidato | null>(null);
   const [recomendar, setRecomendar] = useState<Candidato | null>(null);
   const [agradecer, setAgradecer] = useState<Candidato | null>(null);
+  const [sucesor, setSucesor] = useState<Candidato | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>(null);
+
+  /** Vacantes que gestiona este formador: las únicas a las que puede asignar un sucesor. */
+  const misVacantes = useMemo(
+    () => vacantes.filter((v) => v.formadorId === formadorId && v.estado !== "cerrada"),
+    [vacantes, formadorId],
+  );
 
   const equipo = useMemo(
     () => candidatos.filter((c) => c.tipo === "interno" && c.formadorId === formadorId),
@@ -95,11 +103,29 @@ export function MovilidadInternaPage() {
     setFiltro((actual) =>
       actual && actual.tipo === f.tipo && actual.valor === f.valor ? null : f);
 
-  const enviarAgradecimiento = async (mensaje: string, resumen: string) => {
+  /**
+   * Designación de sucesor. Se recarga porque el cambio vive en la vacante, no en el candidato, y
+   * la tabla pinta el botón en dorado leyendo `vacantes`.
+   */
+  const guardarSucesor = async (accion: () => Promise<unknown>, aviso: string) => {
+    setEnviando(true);
+    try {
+      await accion();
+      await reload();
+      setSucesor(null);
+      toast(aviso);
+    } catch (e) {
+      toast("No se pudo guardar: " + (e as Error).message);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const enviarAgradecimiento = async (mensaje: string, resumen: string, habilidades: string[]) => {
     if (!agradecer) return;
     setEnviando(true);
     try {
-      await agradecerColaborador(agradecer.id, formadorId, mensaje, resumen);
+      await agradecerColaborador(agradecer.id, formadorId, mensaje, resumen, habilidades);
       await reload();
       setAgradecer(null);
       toast("Mensaje enviado y resumen guardado en su historial");
@@ -192,7 +218,8 @@ export function MovilidadInternaPage() {
 
       {/* 3 · La tabla */}
       <TablaEquipo equipo={filtrado} vacantes={vacantes}
-        onVerPerfil={setPerfil} onRecomendar={setRecomendar} onAgradecer={setAgradecer} />
+        onVerPerfil={setPerfil} onRecomendar={setRecomendar} onAgradecer={setAgradecer}
+        onSucesor={setSucesor} />
 
       {proceso && (
         <ProcesoMovilidadModal cand={proceso} vacante={vacanteDe(proceso)} candidatos={candidatos}
@@ -200,16 +227,26 @@ export function MovilidadInternaPage() {
       )}
       {perfil && (
         <PerfilModal cand={perfil} onClose={() => setPerfil(null)}
-          formadores={formadores} formadorActual={formadorId} />
+          formadores={formadores} />
       )}
       {recomendar && (
         <CompartirModal cand={recomendar}
           onEnviar={(dest) => { toast(`Perfil de ${recomendar.nombre.split(" ")[0]} compartido con ${dest} (simulado)`); setRecomendar(null); }}
           onClose={() => setRecomendar(null)} />
       )}
+      {sucesor && (
+        <SucesorModal cand={sucesor} vacantes={misVacantes} guardando={enviando}
+          onAsignar={(vacId) => void guardarSucesor(
+            () => actions.asignarSucesor(vacId, sucesor.id),
+            `${sucesor.nombre.split(" ")[0]} quedó como sucesor de esa posición`)}
+          onQuitar={(vacId) => void guardarSucesor(
+            () => actions.quitarSucesor(vacId),
+            `${sucesor.nombre.split(" ")[0]} ya no es sucesor de esa posición`)}
+          onClose={() => { if (!enviando) setSucesor(null); }} />
+      )}
       {agradecer && (
         <AgradecerModal cand={agradecer} enviando={enviando}
-          onEnviar={(m, r) => { void enviarAgradecimiento(m, r); }}
+          onEnviar={(m, r, h) => { void enviarAgradecimiento(m, r, h); }}
           onClose={() => { if (!enviando) setAgradecer(null); }} />
       )}
     </div>

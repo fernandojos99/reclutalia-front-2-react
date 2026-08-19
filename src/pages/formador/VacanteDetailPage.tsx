@@ -7,7 +7,7 @@ import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom"
 import {
   MapPin, Clock, ShieldCheck, CheckCircle2, Sparkles, Filter, Users, Plus, FileText,
   Archive, ArchiveRestore, Heart, FolderPlus, Share2, User, Download, Send, Star, Video,
-  Calendar, CalendarCheck, Link2, ClipboardList, Bell, PartyPopper, Zap, AlertCircle, FileSignature,
+  Calendar, CalendarCheck, Link2, ClipboardList, ClipboardCheck, Bell, PartyPopper, Zap, AlertCircle, FileSignature,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useData } from "../../store/DataProvider";
@@ -21,6 +21,7 @@ import { PerfilModal } from "../../components/candidato/PerfilModal";
 
 import { InvitarModal } from "../../components/formador/InvitarModal";
 import { AgendaModal } from "../../components/formador/AgendaModal";
+import { AssessmentModal } from "../../components/formador/AssessmentModal";
 import { EntrevistaModal, VerEntrevistaModal, evalEmoji, evalLabel } from "../../components/formador/EntrevistaModal";
 import { EntrevistasExtra } from "../../components/formador/EntrevistasExtra";
 import { VideoIAResumenModal } from "../../components/formador/VideoIAResumenModal";
@@ -29,6 +30,7 @@ import { Celebracion } from "../../components/formador/Celebracion";
 import { BusquedaIAOverlay, CategorizarModal, CompartirModal, SolicitarMasModal } from "../../components/formador/poolModals";
 import { money, diasActivaLabel, mapsUrl, folioCita } from "../../utils/format";
 import { procesoActivoEnOtra } from "../../utils/pipeline";
+import { matchScore } from "../../utils/match";
 import { nivelMovilidad } from "../../utils/movilidad";
 import { descargarCV } from "../../utils/descargarCV";
 import { candidatoElegido, faseVacante } from "../../utils/fases";
@@ -60,6 +62,8 @@ export function VacanteDetailPage() {
   const [perfil, setPerfil] = useState<{ c: Candidato; match: number } | null>(null);
   const [invitando, setInvitando] = useState<Candidato | null>(null);
   const [selEnt, setSelEnt] = useState<number[]>([]);
+  // Assessment: se convoca para UN candidato, así que guarda su cid, no una lista.
+  const [assessment, setAssessment] = useState<number | null>(null);
   const [agenda, setAgenda] = useState(false);
   const [entrevistando, setEntrevistando] = useState<{ c: Candidato; p: PipelineEntry; externa: boolean } | null>(null);
   const [confirmSel, setConfirmSel] = useState<{ cid: number; c: Candidato } | null>(null);
@@ -201,7 +205,28 @@ export function VacanteDetailPage() {
 
   const poolAll: PoolRow[] = (v.pool || []).map(({ cid, match }) => ({ cid, match, c: cand(cid)!, p: v.pipeline[cid] }));
   const poolArch = poolAll.filter((x) => archivados.includes(x.cid));
-  const poolVis = poolAll.filter((x) => !archivados.includes(x.cid) && pasaFiltro(x.c));
+
+  /**
+   * Sucesor designado de la posición. Se muestra AUNQUE no esté en el pool: designarlo es una
+   * decisión del formador, no un resultado del matcher, así que un match por debajo del umbral no
+   * puede hacerlo desaparecer. Si no está en el pool, su porcentaje se calcula aquí con el mismo
+   * `matchScore` que usa el backend.
+   */
+  const sucesor: PoolRow | null = (() => {
+    if (v.sucesorCid == null || archivados.includes(v.sucesorCid)) return null;
+    const c = cand(v.sucesorCid);
+    if (!c) return null;
+    // Respeta los filtros como cualquier otra fila: si el formador filtra por externos, el
+    // sucesor (que siempre es interno) desaparece igual que el resto.
+    if (!pasaFiltro(c)) return null;
+    const enPool = poolAll.find((x) => x.cid === v.sucesorCid);
+    return enPool ?? { cid: c.id, match: matchScore(c, v.req), c, p: v.pipeline[c.id] };
+  })();
+
+  // Fuera de las bandas: ya se pinta arriba y no debe salir dos veces.
+  const poolVis = poolAll.filter(
+    (x) => !archivados.includes(x.cid) && x.cid !== sucesor?.cid && pasaFiltro(x.c),
+  );
 
   return (
     <div>
@@ -311,7 +336,7 @@ export function VacanteDetailPage() {
             </div>
           )}
 
-          {poolVis.length === 0 ? (
+          {poolVis.length === 0 && !sucesor ? (
             <div className="card" style={{ textAlign: "center", padding: "36px 24px" }}>
               {fActivo ? (
                 <>
@@ -329,7 +354,20 @@ export function VacanteDetailPage() {
               )}
             </div>
           ) : (
-            BANDAS.map((b) => {
+            <>
+            {/* El sucesor encabeza el Marketplace: es la persona que el formador ya había decidido
+                que cubriría esta posición, y verla después de un ranking la enterraría. */}
+            {sucesor && (
+              <div>
+                <div className="band-div">
+                  <b style={{ color: "var(--gold-dark)" }}>Candidato sucesor</b>
+                  <span className="cnt">· designado para cubrir esta posición</span>
+                  <div className="ln" style={{ background: "var(--gold)" }} />
+                </div>
+                {poolCard(sucesor, false)}
+              </div>
+            )}
+            {BANDAS.map((b) => {
               const grupo = poolVis.filter((x) => b.test(x.match));
               if (!grupo.length) return null;
               return (
@@ -342,7 +380,8 @@ export function VacanteDetailPage() {
                   {grupo.map((x) => poolCard(x, false))}
                 </div>
               );
-            })
+            })}
+            </>
           )}
 
           {verArch && poolArch.length > 0 && (
@@ -410,6 +449,13 @@ export function VacanteDetailPage() {
                 <div style={{ position: "sticky", bottom: 16, marginTop: 14, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                   {selEnt.length >= 3 && <span className="chip gold"><AlertCircle size={11} /> Límite alcanzado: máximo 3 candidatos por ronda de entrevistas</span>}
                   <button className="btn dark" onClick={() => setAgenda(true)}><Calendar size={15} /> Agendar entrevista con {selEnt.length} candidato(s)</button>
+                  {/* Alternativa a la entrevista uno a uno. Es para un solo candidato: la prueba y
+                      su equipo evaluador se arman por persona. */}
+                  <button className="btn ghost" disabled={selEnt.length !== 1}
+                    title={selEnt.length === 1 ? "Convocar una prueba práctica evaluada por varios formadores" : "Elige un solo candidato para convocar un assessment"}
+                    onClick={() => setAssessment(selEnt[0])}>
+                    <ClipboardCheck size={15} /> Assessment center
+                  </button>
                 </div>
               )}
             </>
@@ -511,8 +557,10 @@ export function VacanteDetailPage() {
               <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
                 <Avatar nombre={seleccionado.c.nombre} />
                 <div style={{ flex: 1 }}><b style={{ fontSize: 15 }}>{seleccionado.c.nombre}</b> <Chip tone="ok" icon={CheckCircle2}>Candidato seleccionado</Chip>
-                  <div style={{ fontSize: 12.5, color: "var(--gray)" }}>Se notificó al candidato con la felicitación y el checklist de documentos. Los demás candidatos fueron notificados y canalizados a otras vacantes compatibles.</div></div>
-                {seleccionado.p.estado === "seleccionado" && (
+                  <div style={{ fontSize: 12.5, color: "var(--gray)" }}>{seleccionado.c.tipo === "interno"
+                    ? "Se notificó al colaborador. Al ser interno pasa directo a su carta oferta, sin subir documentación. Los demás candidatos fueron notificados y canalizados a otras vacantes compatibles."
+                    : "Se notificó al candidato con la felicitación y el checklist de documentos. Los demás candidatos fueron notificados y canalizados a otras vacantes compatibles."}</div></div>
+                {seleccionado.p.estado === "seleccionado" && seleccionado.c.tipo === "externo" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                     <button className="btn gold sm" onClick={() => { void actions.recordarDocs(v.id, seleccionado.cid); toast("Recordatorio enviado a " + seleccionado.c.nombre.split(" ")[0]); }}><Bell size={13} /> Enviar recordatorio de documentos</button>
                     <span className="chip ok"><Bell size={11} /> Auto recordatorios cada 24 horas — activado</span>
@@ -520,6 +568,10 @@ export function VacanteDetailPage() {
                   </div>
                 )}
               </div>
+              {seleccionado.c.tipo === "interno" ? (
+                <div className="chip ok"><CheckCircle2 size={12} /> Colaborador interno · su expediente ya está en la empresa, no sube documentación</div>
+              ) : (
+              <>
               <label>Checklist de documentación del candidato (PDF · máx. 1 MB c/u)</label>
               {[["ine", "Identificación oficial (INE)"], ["curp", "CURP"], ["rfc", "Constancia de situación fiscal (RFC)"], ["domicilio", "Comprobante de domicilio"], ["estudios", "Comprobante de estudios"]].map(([k, l]) => (
                 <div key={k} className={"check-item" + (seleccionado.p.docsContrato[k] ? " done" : "")}>
@@ -542,6 +594,8 @@ export function VacanteDetailPage() {
                 </div>
               )}
               {seleccionado.p.estado !== "seleccionado" && <div className="chip ok" style={{ marginTop: 12 }}><CheckCircle2 size={12} /> Documentación completa — continúa a la carta oferta</div>}
+              </>
+              )}
             </div>
           )}
         </div>
@@ -550,8 +604,11 @@ export function VacanteDetailPage() {
       {tabActual === 5 && abierta && (
         <div className="card">
           {!seleccionado && <p style={{ color: "var(--gray)", textAlign: "center", padding: 30 }}>Primero selecciona a tu candidato ideal.</p>}
-          {seleccionado && seleccionado.p.estado === "seleccionado" && <p style={{ color: "var(--gray)", textAlign: "center", padding: 30 }}>Esperando a que {seleccionado.c.nombre.split(" ")[0]} complete su documentación para habilitar la carta oferta.</p>}
-          {seleccionado && seleccionado.p.estado === "docs_completos" && (
+          {seleccionado && seleccionado.p.estado === "seleccionado" && seleccionado.c.tipo === "externo" && <p style={{ color: "var(--gray)", textAlign: "center", padding: 30 }}>Esperando a que {seleccionado.c.nombre.split(" ")[0]} complete su documentación para habilitar la carta oferta.</p>}
+          {/* Al interno se le puede ofrecer ya en "seleccionado": no pasa por documentación, su
+              expediente ya está en la empresa. La guardia del backend lo permite igual. */}
+          {seleccionado && (seleccionado.p.estado === "docs_completos"
+            || (seleccionado.p.estado === "seleccionado" && seleccionado.c.tipo === "interno")) && (
             <>
               <h3 style={{ marginBottom: 14 }}>Preparar carta oferta · {seleccionado.c.nombre}</h3>
               <OfertaTool v={v} cand={seleccionado.c} onSend={(m, fch, u) => { void actions.enviarOferta(v.id, seleccionado.cid, m, fch, u); toast("Carta oferta enviada al candidato"); }} />
@@ -642,7 +699,7 @@ export function VacanteDetailPage() {
         onConfirmar={(multi) => { void actions.solicitarMas(v.id, multi); setSolicitar(false); toast("Solicitud enviada · recibirás candidatos en los próximos días"); }}
         onClose={() => setSolicitar(false)} />}
       {perfil && <PerfilModal cand={perfil.c} match={perfil.match} req={v.req} onClose={() => setPerfil(null)}
-        formadores={formadores} formadorActual={v.formadorId}
+        formadores={formadores}
         fav={favs.includes(perfil.c.id)} enCat={enCategoria(perfil.c.id)} archivado={archivados.includes(perfil.c.id)}
         onFav={() => void actions.toggleFavCand(v.formadorId, perfil.c.id)}
         onCat={() => setCatCand(perfil.c)}
@@ -651,6 +708,15 @@ export function VacanteDetailPage() {
         extra={!v.pipeline[perfil.c.id] && abierta && <button className="btn gold" onClick={() => { setInvitando(perfil.c); setPerfil(null); }}><Send size={15} /> Invitar a postularse</button>} />}
       {invitando && <InvitarModal cand={invitando} v={v} onClose={() => setInvitando(null)}
         onSend={(msg) => { void actions.invitar(v.id, invitando.id, msg); setInvitando(null); toast("Invitación enviada a " + invitando.nombre.split(" ")[0]); }} />}
+      {assessment != null && cand(assessment) && (
+        <AssessmentModal cand={cand(assessment)!} formadores={formadores} formadorVacante={v.formadorId}
+          onClose={() => setAssessment(null)}
+          onSend={(ev, slots, mod, proyecto) => {
+            void actions.crearAssessment(v.id, assessment, ev, slots, mod, proyecto);
+            setAssessment(null); setSelEnt([]);
+            toast("Assessment convocado · el candidato elegirá uno de los 3 horarios");
+          }} />
+      )}
       {agenda && <AgendaModal cands={selEnt.map((id) => cand(id)!).filter(Boolean)} onClose={() => setAgenda(false)}
         onSend={(slots, mod) => { void actions.enviarSlots(v.id, selEnt, slots, mod); setAgenda(false); setSelEnt([]); toast("Opciones de horario enviadas a los candidatos"); }} />}
       {verVideoIA && <VideoIAResumenModal cand={verVideoIA.c} v={v} match={verVideoIA.p.matchIA || verVideoIA.p.match} onClose={() => setVerVideoIA(null)} />}

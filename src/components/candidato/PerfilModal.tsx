@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from "react";
 import {
   CheckCircle2, Building2, MapPin, Briefcase, GraduationCap, Heart, FolderPlus,
-  Archive, ArchiveRestore, Download, Share2, MessageSquare,
+  Archive, ArchiveRestore, Download, Share2,
 } from "lucide-react";
 import { ComentariosCandidato } from "./ComentariosCandidato";
 import { FichaTalento } from "../movilidad/FichaTalento";
@@ -28,34 +28,38 @@ interface Props {
   onCat?: () => void;
   onArchivar?: () => void;
   onCompartir?: () => void;
-  /** Alimenta la vista de "Comentarios del candidato". */
+  /** Resuelve el nombre del formador que firmó cada comentario. */
   formadores?: Formador[];
-  formadorActual?: string;
 }
+
+type Vista = "perfil" | "ficha" | "comentarios";
+
+const TITULO: Record<Vista, string> = {
+  perfil: "Perfil",
+  ficha: "Ficha de talento",
+  comentarios: "Comentarios",
+};
 
 function MC({ e, hit, base }: { e: string; hit?: boolean; base?: string }) {
   return <span className={"chip " + (hit ? "ok" : base || "")}>{hit && <CheckCircle2 size={11} />}{e}</span>;
 }
 
-export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, archivado, onFav, onCat, onArchivar, onCompartir, formadores, formadorActual }: Props) {
-  const [verComentarios, setVerComentarios] = useState(false);
-  // Solo los internos tienen ficha de talento; para un externo no hay pestañas que mostrar.
-  const [vista, setVista] = useState<"perfil" | "ficha">("perfil");
+export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, archivado, onFav, onCat, onArchivar, onCompartir, formadores }: Props) {
+  // Solo los internos tienen ficha y comentarios; para un externo no hay pestañas que mostrar.
+  const [vista, setVista] = useState<Vista>("perfil");
   const esInterno = cand.tipo === "interno";
   const espHit = (e: string) => !!req && req.espRequeridas.includes(e);
 
-  // Vista alterna del mismo popup: se sustituye el perfil por las notas de otros formadores.
-  if (verComentarios) {
-    return (
-      <Modal onClose={onClose} wide>
-        <h3 style={{ marginBottom: 4 }}>Comentarios sobre {cand.nombre}</h3>
-        <ComentariosCandidato cand={cand} formadores={formadores ?? []} excluir={formadorActual} />
-        <div style={{ marginTop: 20 }}>
-          <button className="btn ghost" onClick={() => setVerComentarios(false)}>← Volver al perfil</button>
-        </div>
-      </Modal>
-    );
-  }
+  /** Barra de pestañas. Una sola, para que no haya dos copias que se puedan desincronizar. */
+  const tabs = esInterno ? (
+    <div className="tabs">
+      {(["perfil", "ficha", "comentarios"] as Vista[]).map((k) => (
+        <button key={k} className={"tab" + (vista === k ? " on" : "")}
+          onClick={() => setVista(k)}>{TITULO[k]}</button>
+      ))}
+    </div>
+  ) : null;
+
   const hardHit = (e: string) => !!req && req.hardSkills.includes(e);
   const softHit = (e: string) => !!req && req.softSkills.includes(e);
   const [verExp, setVerExp] = useState(false);
@@ -71,23 +75,25 @@ export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, arch
   if (esInterno && vista === "ficha") {
     return (
       <Modal onClose={onClose} wide>
-        <div className="tabs">
-          <button className="tab" onClick={() => setVista("perfil")}>Perfil</button>
-          <button className="tab on">Ficha de talento</button>
-        </div>
+        {tabs}
         <FichaTalento cand={cand} vistaFormador />
+      </Modal>
+    );
+  }
+
+  if (esInterno && vista === "comentarios") {
+    return (
+      <Modal onClose={onClose} wide>
+        {tabs}
+        <h3 style={{ marginBottom: 4 }}>Comentarios sobre {cand.nombre}</h3>
+        <ComentariosCandidato cand={cand} formadores={formadores ?? []} />
       </Modal>
     );
   }
 
   return (
     <Modal onClose={onClose} wide>
-      {esInterno && (
-        <div className="tabs">
-          <button className="tab on">Perfil</button>
-          <button className="tab" onClick={() => setVista("ficha")}>Ficha de talento</button>
-        </div>
-      )}
+      {tabs}
       <div style={{ display: "flex", gap: 16, alignItems: "center", marginBottom: 14 }}>
         <Avatar nombre={cand.nombre} foto={cand.foto} />
         <div style={{ flex: 1 }}>
@@ -157,11 +163,6 @@ export function PerfilModal({ cand, match, onClose, extra, req, fav, enCat, arch
       )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
-        {formadores && formadores.length > 0 && (
-          <button className="btn ghost" onClick={() => setVerComentarios(true)}>
-            <MessageSquare size={15} /> Comentarios del candidato
-          </button>
-        )}
         {extra}
       </div>
     </Modal>

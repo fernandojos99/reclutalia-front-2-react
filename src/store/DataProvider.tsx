@@ -39,6 +39,8 @@ interface Actions {
   /** Clasifica el puesto en una disciplina (acota los catálogos del editor de Requisitos). */
   clasificarVacante: (vacId: string) => Promise<Vacante>;
   /** Solicitudes al admin desde "Detalle de caja" (formador asignado, centro de costos). */
+  asignarSucesor: (vacId: string, cid: number) => Promise<Vacante>;
+  quitarSucesor: (vacId: string) => Promise<Vacante>;
   crearSolicitud: (vacId: string, tipo: TipoSolicitud, valor: string) => Promise<Vacante>;
   resolverSolicitud: (vacId: string, solId: string, aprobar: boolean, nota?: string) => Promise<Vacante>;
   invitar: (vacId: string, cid: number, mensaje: string) => Promise<Vacante>;
@@ -48,6 +50,7 @@ interface Actions {
   docsFiltro: (vacId: string, cid: number) => Promise<Vacante>;
   videoIA: (vacId: string, cid: number) => Promise<Vacante>;
   enviarSlots: (vacId: string, cids: number[], slots: string[], modalidad: string) => Promise<Vacante>;
+  crearAssessment: (vacId: string, cid: number, evaluadores: string[], slots: string[], modalidad: string, proyecto: string) => Promise<Vacante>;
   confirmarSlot: (vacId: string, cid: number, slot: string) => Promise<Vacante>;
   registrarEntrevista: (vacId: string, cid: number, datos: EntrevistaPayload) => Promise<Vacante>;
   seleccionar: (vacId: string, cid: number) => Promise<Vacante>;
@@ -67,6 +70,8 @@ interface Actions {
   marcarCapacitacion: (vacId: string, cid: number, modulo: string) => Promise<Vacante>;
   docsContratoListos: (vacId: string, cid: number) => Promise<Vacante>;
   enviarOferta: (vacId: string, cid: number, monto: number, fecha: string, ubicacion?: string) => Promise<Vacante>;
+  rechazarOferta: (vacId: string, cid: number, motivo: string) => Promise<Vacante>;
+  confirmarMovimiento: (vacId: string, cid: number) => Promise<Vacante>;
   aceptarOferta: (vacId: string, cid: number) => Promise<Vacante>;
   firmarContrato: (vacId: string, cid: number) => Promise<Vacante>;
   simular: (vacId: string, cid: number) => Promise<Vacante>;
@@ -150,6 +155,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     crearVacante: (req, fid) => runVac(() => vacanteService.crear(req, fid)),
     solicitarMas: (id, mp) => runVac(() => vacanteService.solicitarMasCandidatos(id, mp)),
     clasificarVacante: (id) => runVac(() => vacanteService.clasificar(id)),
+    asignarSucesor: (id, cid) => runVac(() => vacanteService.asignarSucesor(id, cid)),
+    quitarSucesor: (id) => runVac(() => vacanteService.quitarSucesor(id)),
     crearSolicitud: (id, tipo, valor) => runVac(() => vacanteService.crearSolicitud(id, tipo, valor)),
     resolverSolicitud: (id, sid, ap, nota) => runVac(() => vacanteService.resolverSolicitud(id, sid, ap, nota)),
     invitar: (id, cid, m) => runVac(() => pipelineService.invitar(id, cid, m)),
@@ -159,6 +166,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     docsFiltro: (id, cid) => runVac(() => pipelineService.docsFiltro(id, cid)),
     videoIA: (id, cid) => runVac(() => pipelineService.videoIA(id, cid)),
     enviarSlots: (id, cids, slots, mod) => runVac(() => pipelineService.enviarSlots(id, cids, slots, mod)),
+    crearAssessment: (id, cid, ev, slots, mod, pr) => runVac(() => pipelineService.crearAssessment(id, cid, ev, slots, mod, pr)),
     confirmarSlot: (id, cid, s) => runVac(() => pipelineService.confirmarSlot(id, cid, s)),
     registrarEntrevista: (id, cid, d) => runVac(() => pipelineService.registrarEntrevista(id, cid, d)),
     seleccionar: (id, cid) => runVac(() => pipelineService.seleccionar(id, cid)),
@@ -177,6 +185,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     marcarCapacitacion: (id, cid, modulo) => runVac(() => pipelineService.marcarCapacitacion(id, cid, modulo)),
     docsContratoListos: (id, cid) => runVac(() => pipelineService.docsContrato(id, cid)),
     enviarOferta: (id, cid, monto, fecha, ubic) => runVac(() => pipelineService.enviarOferta(id, cid, monto, fecha, ubic)),
+    rechazarOferta: (id, cid, m) => runVac(() => pipelineService.rechazarOferta(id, cid, m)),
+    confirmarMovimiento: (id, cid) => runVac(() => pipelineService.confirmarMovimiento(id, cid)),
     aceptarOferta: (id, cid) => runVac(() => pipelineService.aceptarOferta(id, cid)),
     firmarContrato: (id, cid) => runVac(() => pipelineService.firmarContrato(id, cid)),
     simular: (id, cid) => runVac(() => pipelineService.simular(id, cid)),

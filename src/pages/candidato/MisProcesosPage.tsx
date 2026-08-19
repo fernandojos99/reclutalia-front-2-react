@@ -7,13 +7,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Briefcase, MapPin, Send, Video, Sparkles, CheckCircle2, ClipboardCheck, ShieldCheck,
-  CalendarCheck, Link2, Landmark, ExternalLink, QrCode, Edit3, Clock, FileSignature, PartyPopper,
+  CalendarCheck, Link2, Landmark, ExternalLink, QrCode, Edit3, Clock, FileSignature, PartyPopper, XCircle,
   Download, Search, MessageSquare,
 } from "lucide-react";
 import { useData } from "../../store/DataProvider";
 import { useDemo } from "../../contexts/DemoContext";
 import { Chip } from "../../components/common/Chip";
 import { MiniPipe } from "../../components/common/MiniPipe";
+import { PasosTransferencia } from "../../components/candidato/PasosTransferencia";
+import { descargarOferta } from "../../utils/descargarOferta";
 import { QRDemo } from "../../components/common/QRDemo";
 import { Modal } from "../../components/common/Modal";
 import { UploadPDF } from "../../components/ui/uploads";
@@ -58,6 +60,8 @@ export function MisProcesosPage() {
 
   const [videoV, setVideoV] = useState<Vacante | null>(null);
   const [confirmOferta, setConfirmOferta] = useState<Vacante | null>(null);
+  const [rechazarOferta, setRechazarOferta] = useState<Vacante | null>(null);
+  const [motivoOferta, setMotivoOferta] = useState("");
   const [feedbackDe, setFeedbackDe] = useState<Vacante | null>(null);
   const [filtro, setFiltro] = useState<"todos" | "activos" | "cerrados">("todos");
   const [qrDe, setQrDe] = useState<string | null>(null);
@@ -122,6 +126,13 @@ export function MisProcesosPage() {
         const filtroDocsOk = psicoVigente(cand.psicometrico) && loc.autoriza;
         const medicoOk = !v.req.examenMedico || !!(p.medico && p.medico.validado);
         const contratoOk = docsDe(cand.tipo).every(([k]) => p.docsContrato[k]) && medicoOk;
+        /**
+         * Evaluadores que todavía no entregan: entrevistas adicionales pedidas a otros formadores
+         * o el equipo de un Assessment center. Mientras quede alguno, la etapa "Entrevista" del
+         * candidato sigue pendiente. Se deriva, así que pedir una entrevista extra después la
+         * devuelve a pendiente sola, y cancelarla la libera.
+         */
+        const evalPendientes = (p.entrevistasExtra ?? []).filter((e) => e.estado !== "realizada").length;
 
         return (
           <div className={"card" + (p.estado === "contratado" ? " ok" : "")} key={v.id} style={{ marginBottom: 16 }}>
@@ -130,7 +141,7 @@ export function MisProcesosPage() {
               <Chip icon={MapPin}>{v.req.ubicacionTrabajo} · {v.req.modalidad}</Chip>
             </div>
             {!["descartado", "filtrado", "rechazado"].includes(p.estado) &&
-              <div style={{ margin: "10px 0 14px", maxWidth: 560 }}><MiniPipe estado={p.estado} /></div>}
+              <div style={{ margin: "10px 0 14px", maxWidth: 560 }}><MiniPipe estado={p.estado} evaluacionesPendientes={evalPendientes} /></div>}
 
             {p.estado === "invitado" && (
               <>
@@ -230,9 +241,24 @@ export function MisProcesosPage() {
               </div>
             )}
 
-            {p.estado === "entrevistado" && <Chip tone="gold">Entrevista realizada · estamos revisando tu candidatura</Chip>}
+            {p.estado === "entrevistado" && (evalPendientes > 0
+              ? <Chip tone="gold">Falta{evalPendientes === 1 ? "" : "n"} {evalPendientes} evaluación{evalPendientes === 1 ? "" : "es"} del equipo · te avisaremos al terminar</Chip>
+              : <Chip tone="gold">Entrevista realizada · estamos revisando tu candidatura</Chip>)}
 
-            {["seleccionado", "docs_completos"].includes(p.estado) && (
+            {/* El interno ya tiene expediente en la empresa: no sube nada y pasa directo a la
+                carta oferta, que su formador todavía puede estar preparando. */}
+            {p.estado === "seleccionado" && cand.tipo === "interno" && (
+              <div className="card" style={{ background: "var(--gold-soft)", borderColor: "#F0D9A5" }}>
+                <b>🎉 ¡Felicidades, {cand.nombre.split(" ")[0]}! Fuiste seleccionado(a).</b>
+                <p style={{ fontSize: 12.5, marginTop: 4 }}>
+                  Como ya formas parte del grupo, no tienes que subir documentación: tu expediente
+                  ya está con nosotros. <b>Tu carta oferta se está generando</b> y la verás aquí en
+                  cuanto tu formador la envíe.
+                </p>
+              </div>
+            )}
+
+            {["seleccionado", "docs_completos"].includes(p.estado) && cand.tipo === "externo" && (
               <>
                 <div className="card" style={{ background: "var(--gold-soft)", borderColor: "#F0D9A5", marginBottom: 12 }}>
                   <b>🎉 ¡Felicidades, {cand.nombre.split(" ")[0]}! Fuiste seleccionado(a).</b>
@@ -297,7 +323,8 @@ export function MisProcesosPage() {
 
             {/* El interno ve una carta distinta: compara contra lo que deja atrás. */}
             {p.estado === "oferta_enviada" && cand.tipo === "interno" && (
-              <OfertaInterna cand={cand} v={v} p={p} onAceptar={() => setConfirmOferta(v)} />
+              <OfertaInterna cand={cand} v={v} p={p}
+                onAceptar={() => setConfirmOferta(v)} onRechazar={() => setRechazarOferta(v)} />
             )}
 
             {p.estado === "oferta_enviada" && cand.tipo === "externo" && (
@@ -311,23 +338,67 @@ export function MisProcesosPage() {
                   <div style={{ fontSize: 13.5 }}>{p.oferta?.ubicacion || DIRECCION_CORP}</div>
                   <a className="btn ghost sm" style={{ marginTop: 6 }} href={mapsUrl(p.oferta?.ubicacion)} target="_blank" rel="noreferrer"><MapPin size={13} /> Ver en Google Maps</a>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button className="btn gold" onClick={() => setConfirmOferta(v)}><CheckCircle2 size={15} /> Aceptar oferta</button>
-                  <button className="btn ghost"><Download size={14} /> Descargar carta oferta</button>
+                  <button className="btn ghost" onClick={() => descargarOferta(cand, v, p)}><Download size={14} /> Descargar carta oferta</button>
+                  <button className="btn ghost" onClick={() => setRechazarOferta(v)}><XCircle size={14} /> Rechazar oferta</button>
                 </div>
               </div>
             )}
 
-            {/* El interno ya cobra en la empresa: no hay cuenta que abrir, sino un aviso que dar. */}
-            {p.estado === "oferta_aceptada" && cand.tipo === "interno" && (
-              <MensajeLiberacion
-                cand={cand} v={v} p={p}
-                formadorActual={formadores.find((f) => f.id === cand.formadorId)?.nombre}
-                onEnviar={(msg) => {
-                  void actions.enviarMensajeLiberacion(v.id, cand.id, msg);
-                  toast("Mensaje enviado a tu formador actual");
-                }}
-              />
+            {/* El interno ya cobra en la empresa: no hay cuenta que abrir. Lo que sigue es el
+                trámite de transferencia, en dos pantallas: primero el aviso con lo que tiene que
+                dejar listo, y solo después la despedida y el estatus del trámite. */}
+            {p.estado === "oferta_aceptada" && cand.tipo === "interno" && !p.movimientoConfirmado && (
+              <div className="card" style={{ borderColor: "var(--gold)" }}>
+                <h3 style={{ fontSize: 15, marginBottom: 6 }}>
+                  <PartyPopper size={16} style={{ verticalAlign: -3 }} /> ¡Felicidades por tu movimiento, {cand.nombre.split(" ")[0]}!
+                </h3>
+                <p style={{ fontSize: 13.5, lineHeight: 1.55, marginBottom: 12 }}>
+                  Aceptaste tu carta oferta para <b>{v.req.titulo}</b>. Por tratarse de un movimiento
+                  de <b>transferencia</b>, el trámite interno lleva su tiempo: te pedimos paciencia
+                  mientras se completa. Mientras tanto, esto es lo que tienes que dejar listo para
+                  que tu movimiento se haga efectivo.
+                </p>
+                <ul className="ofrece-lista" style={{ marginBottom: 14 }}>
+                  {[
+                    "Entrega de tus herramientas de trabajo",
+                    "Documentación y transferencia de tus actividades actuales",
+                    "Agendar la reunión de cierre con tu formador",
+                    "Realizar la firma de tu nuevo contrato",
+                  ].map((t) => (
+                    <li key={t}><CheckCircle2 size={14} /><span>{t}</span></li>
+                  ))}
+                </ul>
+                <button className="btn gold" onClick={() => {
+                  void actions.confirmarMovimiento(v.id, cand.id);
+                  toast("Movimiento confirmado · arrancó la entrega de tu puesto");
+                }}>
+                  <CheckCircle2 size={15} /> Confirmar movimiento
+                </button>
+              </div>
+            )}
+
+            {p.estado === "oferta_aceptada" && cand.tipo === "interno" && p.movimientoConfirmado && (
+              <>
+                <MensajeLiberacion
+                  cand={cand} v={v} p={p}
+                  formadorActual={formadores.find((f) => f.id === cand.formadorId)?.nombre}
+                  onEnviar={(msg) => {
+                    void actions.enviarMensajeLiberacion(v.id, cand.id, msg);
+                    toast("Mensaje enviado a tu formador actual");
+                  }}
+                />
+                <div className="card" style={{ marginTop: 12 }}>
+                  <p className="help" style={{ marginTop: 0, marginBottom: 12 }}>
+                    No olvides <b>agendar tu reunión de cierre</b> con tu formador actual. Tu
+                    <b> fecha de ingreso</b> y tu <b>nueva sede</b> se te notificarán cuando el
+                    proceso se haya completado, lo cual puede tomar <b>entre 2 y 4 semanas</b>.
+                  </p>
+                  <label>Estatus de tu transferencia</label>
+                  <div style={{ marginTop: 8, maxWidth: 620 }}><PasosTransferencia actual={0} /></div>
+                </div>
+              </>
             )}
 
             {p.estado === "oferta_aceptada" && cand.tipo === "externo" && (
@@ -428,7 +499,30 @@ export function MisProcesosPage() {
           <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>Al confirmar, aceptas la carta oferta de "{confirmOferta.req.titulo}", generando tu contrato para firmar el mismo día de tu fecha de ingreso.</p>
           <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
             <button className="btn gold" onClick={() => { void actions.aceptarOferta(confirmOferta.id, cand.id); setConfirmOferta(null); toast("¡Oferta aceptada!"); }}><FileSignature size={15} /> Aceptar oferta</button>
-            <button className="btn ghost" onClick={() => setConfirmOferta(null)}>Rechazar la oferta</button>
+            <button className="btn ghost" onClick={() => setConfirmOferta(null)}>Volver</button>
+          </div>
+        </Modal>
+      )}
+      {rechazarOferta && (
+        <Modal onClose={() => { setRechazarOferta(null); setMotivoOferta(""); }}>
+          <h3 style={{ marginBottom: 8 }}>Rechazar la carta oferta</h3>
+          <p style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+            Al rechazarla, tu proceso para "{rechazarOferta.req.titulo}" se cierra
+            {cand.tipo === "interno" ? " y te quedas en tu puesto actual" : ""}. La vacante seguirá
+            abierta para otros candidatos. <b>Esta acción no se puede deshacer.</b>
+          </p>
+          <div className="field" style={{ marginTop: 12 }}>
+            <label>Motivo (opcional)</label>
+            <textarea rows={3} value={motivoOferta} onChange={(e) => setMotivoOferta(e.target.value)}
+              placeholder="Cuéntanos por qué, para mejorar las siguientes propuestas." />
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button className="btn gold" onClick={() => {
+              void actions.rechazarOferta(rechazarOferta.id, cand.id, motivoOferta);
+              setRechazarOferta(null); setMotivoOferta("");
+              toast("Rechazaste la carta oferta");
+            }}><XCircle size={15} /> Rechazar la oferta</button>
+            <button className="btn ghost" onClick={() => { setRechazarOferta(null); setMotivoOferta(""); }}>Volver</button>
           </div>
         </Modal>
       )}

@@ -123,6 +123,24 @@ export const SEDES: Record<string, string[]> = {
   Sucursal: ["Sucursal Centro Histórico (CDMX)", "Sucursal Coapa (CDMX)", "Sucursal Cumbres (MTY)", "Sucursal Chapultepec (GDL)", "Sucursal Angelópolis (PUE)"],
 };
 export const TIPOS_VACANTE = ["Estándar", "Preventiva", "Proactiva", "Confidencial"] as const;
+
+/**
+ * Filtros que el formador puede exigir en el proceso, desde "Detalle de caja".
+ *
+ * "Examen médico" está en la lista porque el formador lo ve como un filtro más, pero se guarda en
+ * `Requisito.examenMedico`, no en `Requisito.filtros`: es el único que hoy cambia el proceso del
+ * candidato, y ya existía antes que esta sección.
+ */
+export const FILTROS_VACANTE = [
+  "CCV",
+  "Examen médico",
+  "IGH",
+  "Círculo de Crédito",
+  "Excel avanzado",
+] as const;
+
+/** El filtro del catálogo que no se guarda en `req.filtros` sino en su propio campo. */
+export const FILTRO_EXAMEN_MEDICO = "Examen médico";
 export const ESPECIALIDADES = [
   "Ventas B2C", "Ventas B2B", "Desarrollo Frontend", "Desarrollo Backend", "Ciencia de Datos",
   "Business Intelligence", "Marketing Digital", "CRM y Fidelización", "Contabilidad",

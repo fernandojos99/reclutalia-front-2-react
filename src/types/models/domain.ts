@@ -73,6 +73,14 @@ export interface Requisito {
   /** Posición en pausa: no se recluta, aunque la vacante siga viva. */
   pausada: boolean;
   tipoVacante: string;
+  /**
+   * Filtros que se le exigen al candidato en el proceso (catálogo `FILTROS_VACANTE`).
+   *
+   * "Examen médico" NO vive aquí: tiene su propio campo `examenMedico`, que ya condiciona el
+   * proceso del candidato. La sección de Detalle de caja pinta los dos juntos, pero el dato es uno
+   * por filtro para no tener dos verdades sobre lo mismo.
+   */
+  filtros?: string[];
   puedeSerSuperior: boolean;
   ubicacionNoRelevante: boolean;
   expNoRelevante: boolean;
@@ -113,6 +121,24 @@ export interface EntrevistaExtra {
   entrevista?: Entrevista;
 }
 
+/**
+ * Assessment center: una prueba práctica que varios formadores evalúan a la vez.
+ *
+ * No duplica el ciclo de agendado: reparte LOS MISMOS tres horarios del pipeline entre todos los
+ * evaluadores, así que cuando el candidato confirma uno queda confirmado para todos. Cada evaluador
+ * entrega su resumen, feedback y voto por su `EntrevistaExtra`, que es donde ya vivía ese registro.
+ *
+ * No avanza el proceso por su cuenta: el formador dueño de la vacante registra la entrevista a
+ * mano cuando considera que ya tiene lo que necesita.
+ */
+export interface Assessment {
+  /** Formadores invitados a evaluar, además del que la organiza. */
+  evaluadores: string[];
+  solicitado: string;
+  /** Descripción de la prueba que el candidato debe desarrollar. */
+  proyecto: string;
+}
+
 export interface Oferta {
   monto: number;
   fecha: string;
@@ -145,11 +171,22 @@ export interface PipelineEntry {
   entrevista?: Entrevista;
   /** Entrevistas pedidas a otros formadores, además de la del formador principal. */
   entrevistasExtra?: EntrevistaExtra[];
+  /** Assessment center en curso: la entrevista se sustituye por una prueba evaluada en grupo. */
+  assessment?: Assessment;
   oferta?: Oferta;
   medico?: Medico;
   cuentaBanco?: string;
   /** Solo internos: mensaje de despedida que el candidato deja a su formador actual. */
   mensajeLiberacion?: string;
+  /**
+   * Solo internos: el candidato leyó el aviso de transferencia y confirmó el movimiento.
+   *
+   * Se guarda en vez de derivarse porque no hay ningún otro dato del que se pueda deducir: es un
+   * acuse de lectura, y si viviera en el estado local de la vista se perdería al recargar.
+   */
+  movimientoConfirmado?: boolean;
+  /** Vacante preventiva que se publicó al liberar su puesto. Evita crearla dos veces. */
+  preventivaVacId?: string;
   numEmpleado?: string;
   motivoRechazo?: string;
   /** Módulos de inducción/capacitación completados por el candidato (visibles para el formador). */
@@ -197,6 +234,14 @@ export interface Vacante {
   /** Estado de la vacante antes de solicitar la edición (para restaurarlo al resolver). */
   cambiosDesde?: string;
   archivados: number[];
+  /**
+   * Colaborador designado como sucesor de esta posición.
+   *
+   * Se guarda en la vacante y no en el candidato para que la relación sea una sola por vacante:
+   * "quién cubre esta posición" tiene una respuesta, y el Marketplace la puede leer sin recorrer
+   * todos los candidatos. Aparece destacado al frente del Marketplace mientras la vacante busca.
+   */
+  sucesorCid?: number;
   pool?: PoolItem[];
   /** Solicitudes al administrador (formador asignado, centro de costos). Las nuevas van al frente. */
   solicitudes?: Solicitud[];
@@ -281,6 +326,16 @@ export interface HistorialPuesto {
   /** Vacío si es el puesto actual. */
   hasta: string;
   motivo: "ingreso" | "ascenso" | "movilidad";
+  /**
+   * Resumen de desempeño que dejó el formador al despedir al colaborador de este puesto (botón
+   * "Agradecer"). **Solo lo ven otros formadores**: es lo que alimenta la pestaña de comentarios,
+   * y el colaborador no lo lee nunca — el backend lo borra antes de dárselo al agente.
+   */
+  resumen?: string;
+  /** Id del formador que escribió el resumen. */
+  resumenPor?: string;
+  /** Habilidades y áreas de experiencia que destacó. Misma visibilidad que el resumen. */
+  habilidades?: string[];
 }
 
 /**

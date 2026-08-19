@@ -45,6 +45,15 @@ export const vacanteService = {
     return apiClient.post<Vacante>(`/vacantes/${vacId}/clasificar`);
   },
 
+  /** Designa a un colaborador como sucesor de la posición (o lo retira con `quitarSucesor`). */
+  asignarSucesor(vacId: string, cid: number): Promise<Vacante> {
+    return apiClient.post<Vacante>(`/vacantes/${vacId}/sucesor`, { cid });
+  },
+
+  quitarSucesor(vacId: string): Promise<Vacante> {
+    return apiClient.delete<Vacante>(`/vacantes/${vacId}/sucesor`);
+  },
+
   crearSolicitud(vacId: string, tipo: TipoSolicitud, valor: string): Promise<Vacante> {
     return apiClient.post<Vacante>(`/vacantes/${vacId}/solicitudes`, { tipo, valor });
   },

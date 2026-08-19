@@ -17,6 +17,8 @@ export interface EntrevistaAsignada {
   candidato: string;
   solicitante: string;
   extra: EntrevistaExtra;
+  /** Prueba del Assessment center, si esta evaluación es parte de uno. */
+  assessment?: string;
 }
 
 export const entrevistaExtraService = {
