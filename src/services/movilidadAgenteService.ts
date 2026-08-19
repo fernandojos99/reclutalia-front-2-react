@@ -41,12 +41,12 @@ export function resetSessionMovilidad(candId: number): void {
 
 /** Cierre del formador: agradece al colaborador y deja el resumen en su historial. */
 export async function agradecerColaborador(
-  cid: number, formadorId: string, mensaje: string, resumen: string,
+  cid: number, formadorId: string, mensaje: string, resumen: string, habilidades: string[] = [],
 ): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/movilidad/${cid}/agradecer`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ formadorId, mensaje, resumen }),
+    body: JSON.stringify({ formadorId, mensaje, resumen, habilidades }),
   });
   if (!res.ok) {
     const d = await res.json().catch(() => null);

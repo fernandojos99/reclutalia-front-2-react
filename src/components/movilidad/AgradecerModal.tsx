@@ -9,13 +9,14 @@
  */
 import { useState } from "react";
 import { Eye, EyeOff, HandHeart } from "lucide-react";
+import { Chip } from "../common/Chip";
 import { Modal } from "../common/Modal";
 import { Avatar } from "../common/Avatar";
 import type { Candidato } from "../../types/models/domain";
 
 interface Props {
   cand: Candidato;
-  onEnviar: (mensaje: string, resumen: string) => void;
+  onEnviar: (mensaje: string, resumen: string, habilidades: string[]) => void;
   onClose: () => void;
   enviando?: boolean;
 }
@@ -26,6 +27,13 @@ export function AgradecerModal({ cand, onEnviar, onClose, enviando = false }: Pr
     `${nombre}, gracias por todo lo que aportaste al equipo. Te deseamos mucho éxito en tu nueva etapa dentro del grupo.`,
   );
   const [resumen, setResumen] = useState("");
+  const [habilidades, setHabilidades] = useState<string[]>([]);
+
+  // Se eligen de lo que ya tiene en su perfil: destacar algo que no está en su ficha no ayudaría a
+  // nadie a encontrarlo después.
+  const suyas = [...cand.esp, ...cand.hard, ...cand.soft];
+  const alternar = (h: string) =>
+    setHabilidades((x) => (x.includes(h) ? x.filter((y) => y !== h) : [...x, h]));
 
   return (
     <Modal onClose={onClose} wide>
@@ -58,9 +66,28 @@ export function AgradecerModal({ cand, onEnviar, onClose, enviando = false }: Pr
         </div>
       </div>
 
+      <div className="field">
+        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <EyeOff size={13} /> Habilidades y áreas de experiencia que destacó · {nombre} NO las ve
+        </label>
+        <div className="tagpick">
+          {suyas.map((h) => (
+            <button key={h} type="button" disabled={enviando}
+              onClick={() => alternar(h)}
+              style={{ background: "none", border: 0, padding: 0, cursor: "pointer" }}>
+              <Chip tone={habilidades.includes(h) ? "ok" : ""}>{h}</Chip>
+            </button>
+          ))}
+        </div>
+        <div className="help">
+          Quedan junto al resumen en su historial de puestos y las leen los formadores que valoren
+          su perfil más adelante. Es opcional.
+        </div>
+      </div>
+
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button className="btn gold" disabled={enviando || !mensaje.trim()}
-          onClick={() => onEnviar(mensaje, resumen)}>
+          onClick={() => onEnviar(mensaje, resumen, habilidades)}>
           <HandHeart size={15} /> {enviando ? "Enviando…" : "Enviar y cerrar"}
         </button>
         <button className="btn ghost" disabled={enviando} onClick={onClose}>Cancelar</button>

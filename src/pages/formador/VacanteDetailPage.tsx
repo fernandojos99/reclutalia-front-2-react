@@ -678,7 +678,7 @@ export function VacanteDetailPage() {
         onConfirmar={(multi) => { void actions.solicitarMas(v.id, multi); setSolicitar(false); toast("Solicitud enviada · recibirás candidatos en los próximos días"); }}
         onClose={() => setSolicitar(false)} />}
       {perfil && <PerfilModal cand={perfil.c} match={perfil.match} req={v.req} onClose={() => setPerfil(null)}
-        formadores={formadores} formadorActual={v.formadorId}
+        formadores={formadores}
         fav={favs.includes(perfil.c.id)} enCat={enCategoria(perfil.c.id)} archivado={archivados.includes(perfil.c.id)}
         onFav={() => void actions.toggleFavCand(v.formadorId, perfil.c.id)}
         onCat={() => setCatCand(perfil.c)}

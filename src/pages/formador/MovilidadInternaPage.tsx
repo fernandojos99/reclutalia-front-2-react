@@ -121,11 +121,11 @@ export function MovilidadInternaPage() {
     }
   };
 
-  const enviarAgradecimiento = async (mensaje: string, resumen: string) => {
+  const enviarAgradecimiento = async (mensaje: string, resumen: string, habilidades: string[]) => {
     if (!agradecer) return;
     setEnviando(true);
     try {
-      await agradecerColaborador(agradecer.id, formadorId, mensaje, resumen);
+      await agradecerColaborador(agradecer.id, formadorId, mensaje, resumen, habilidades);
       await reload();
       setAgradecer(null);
       toast("Mensaje enviado y resumen guardado en su historial");
@@ -227,7 +227,7 @@ export function MovilidadInternaPage() {
       )}
       {perfil && (
         <PerfilModal cand={perfil} onClose={() => setPerfil(null)}
-          formadores={formadores} formadorActual={formadorId} />
+          formadores={formadores} />
       )}
       {recomendar && (
         <CompartirModal cand={recomendar}
@@ -246,7 +246,7 @@ export function MovilidadInternaPage() {
       )}
       {agradecer && (
         <AgradecerModal cand={agradecer} enviando={enviando}
-          onEnviar={(m, r) => { void enviarAgradecimiento(m, r); }}
+          onEnviar={(m, r, h) => { void enviarAgradecimiento(m, r, h); }}
           onClose={() => { if (!enviando) setAgradecer(null); }} />
       )}
     </div>

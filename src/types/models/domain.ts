@@ -297,6 +297,16 @@ export interface HistorialPuesto {
   /** Vacío si es el puesto actual. */
   hasta: string;
   motivo: "ingreso" | "ascenso" | "movilidad";
+  /**
+   * Resumen de desempeño que dejó el formador al despedir al colaborador de este puesto (botón
+   * "Agradecer"). **Solo lo ven otros formadores**: es lo que alimenta la pestaña de comentarios,
+   * y el colaborador no lo lee nunca — el backend lo borra antes de dárselo al agente.
+   */
+  resumen?: string;
+  /** Id del formador que escribió el resumen. */
+  resumenPor?: string;
+  /** Habilidades y áreas de experiencia que destacó. Misma visibilidad que el resumen. */
+  habilidades?: string[];
 }
 
 /**
